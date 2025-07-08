@@ -144,19 +144,9 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
         }
 
         const cellMappings: { [key: string]: any } = {
-            'F2': data.droneName,
-            'K2': data.date ? format(data.date, "yyyy-MM-dd") : "N/A",
-            'B2': data.company,
-            'E3': data.aircraftModel,
-            'D2': data.manufacturer,
-            'H2': data.aircraftType,
-            'E6': data.serialNo,
-            'D4': data.visualInspectionNotes,
-            'D9': data.functionInspectionNotes,
-            'D19': data.deepCleanNotes,
-            'D12': data.firmwareUpdate,
-            'D16': data.calibrationNotes,
-            'D24': data.additionalRepairsNotes,
+            'C2': data.serialNo,
+            'F2': data.aircraftModel,
+            'N2': data.droneName,
         };
 
         for (const cell in cellMappings) {

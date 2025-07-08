@@ -1,3 +1,4 @@
+
 "use server";
 
 import fs from "fs/promises";
@@ -8,13 +9,12 @@ import ExcelJS from "exceljs";
 import { format } from "date-fns";
 import type { InspectionFormData } from "./types";
 import { MAX_IMAGES } from "./types";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 // The image module is a CommonJS module, which is fine for server-side code.
-// It allows us to embed images into the Word document.
 const ImageModule = require("docxtemplater-image-module-free");
 
-// This function is a Next.js Server Action.
-// It handles the logic for generating reports without needing a separate API endpoint.
 export async function generateReport(data: InspectionFormData): Promise<{
   success: boolean;
   message: string;
@@ -23,138 +23,154 @@ export async function generateReport(data: InspectionFormData): Promise<{
   console.log("Received data for report generation.");
 
   try {
-    // Define paths for template and output directories.
-    // Templates are expected in `public/templates`.
-    // Output files will be placed in `public/output/[timestamp]`.
-    const templateDir = path.resolve(process.cwd(), "public/templates");
-    const wordTemplatePath = path.join(templateDir, "template.docx");
-    const excelTemplatePath = path.join(templateDir, "template.xlsx");
-
     const timestamp = Date.now();
-    const outputDir = path.resolve(process.cwd(), "public/output", timestamp.toString());
-    const outputWordPath = path.join(outputDir, "inspection_report.docx");
-    const outputExcelPath = path.join(outputDir, "inspection_data.xlsx");
+    const templateDir = path.resolve(process.cwd(), "public/templates");
 
-    // Create the unique output directory for this report generation.
-    await fs.mkdir(outputDir, { recursive: true });
-
-    // --- WORD DOCUMENT GENERATION ---
-    const wordTemplateContent = await fs.readFile(wordTemplatePath);
-    const zip = new PizZip(wordTemplateContent);
-
-    // Configure the image module for docxtemplater.
-    // This tells the library how to handle image tags in the template.
-    const imageOpts = {
-      centered: false,
-      fileType: "docx",
-      // This function provides the image data (as a buffer) for a given tag.
-      getImage: function (tagValue: string) {
-        if (!tagValue) return null;
-        // The tag value is a base64 data URI (e.g., "data:image/png;base64,...").
-        // We extract the base64 part and convert it to a Buffer.
-        return Buffer.from(tagValue.substring(tagValue.indexOf(",") + 1), "base64");
-      },
-      // This function specifies the size of the images in the document.
-      // We use a fixed size as images are pre-resized on the client.
-      getSize: function () {
-        return [212, 283];
-      },
-    };
-
-    const doc = new Docxtemplater(zip, {
-      paragraphLoop: true, // Allow loops inside paragraphs.
-      linebreaks: true,      // Handle newlines in text.
-      modules: [new ImageModule(imageOpts)],
-    });
-
-    // Prepare the data for the template.
-    // We ensure that optional fields have a default value of "N/A".
-    const templateData: Record<string, any> = {
-      ...data,
-      date: data.date ? format(data.date, "PPP") : "N/A",
-      visualInspectionNotes: data.visualInspectionNotes || "N/A",
-      functionInspectionNotes: data.functionInspectionNotes || "N/A",
-      deepCleanNotes: data.deepCleanNotes || "N/A",
-      firmwareUpdate: data.firmwareUpdate || "N/A",
-      calibrationNotes: data.calibrationNotes || "N/A",
-      additionalRepairsNotes: data.additionalRepairsNotes || "N/A",
-    };
-
-    // Add image data to the template data object.
-    // The template should have placeholders like {image_1}, {image_2}, etc.
-    for (let i = 0; i < MAX_IMAGES; i++) {
-      // If an image exists, pass its data URI. Otherwise, pass null to remove the tag.
-      templateData[`image_${i + 1}`] = data.images[i] || null;
-    }
-
-    // Fill the template with the prepared data.
-    doc.render(templateData);
-
-    // Generate the final Word document as a Node.js Buffer.
-    const docxBuffer = doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
-    await fs.writeFile(outputWordPath, docxBuffer);
-    console.log(`Word report saved to ${outputWordPath}`);
-
-    // --- EXCEL DOCUMENT GENERATION ---
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(excelTemplatePath);
-    const worksheet = workbook.getWorksheet("Sheet2"); // Get worksheet by name.
-
-    if (!worksheet) {
-      throw new Error("Sheet2 not found in the Excel template.");
-    }
-
-    // Add a new row with the inspection data.
-    // The order of items in the array must match the column order in the template.
-    worksheet.addRow([
-      data.droneName,
-      data.date ? format(data.date, "yyyy-MM-dd") : "N/A",
-      data.technician,
-      data.supervisor,
-      data.company,
-      data.aircraftModel,
-      data.manufacturer,
-      data.aircraftType,
-      data.serialNo,
-      data.visualInspectionNotes || "N/A",
-      data.functionInspectionNotes || "N/A",
-      data.deepCleanNotes || "N/A",
-      data.firmwareUpdate || "N/A",
-      data.calibrationNotes || "N/A",
-      data.additionalRepairsNotes || "N/A",
+    // --- Generate Documents in Memory ---
+    const [docxBuffer, xlsxBuffer] = await Promise.all([
+      generateDocx(data, templateDir),
+      generateXlsx(data, templateDir),
     ]);
+    console.log("Successfully generated DOCX and XLSX buffers.");
 
-    // Write the updated workbook to the output file.
-    await workbook.xlsx.writeFile(outputExcelPath);
-    console.log(`Excel report saved to ${outputExcelPath}`);
+    // --- Upload to Firebase Storage ---
+    const reportPath = `reports/${timestamp}`;
+    const wordRef = ref(storage, `${reportPath}/inspection_report.docx`);
+    const excelRef = ref(storage, `${reportPath}/inspection_data.xlsx`);
+    
+    await Promise.all([
+        uploadBytes(wordRef, docxBuffer),
+        uploadBytes(excelRef, xlsxBuffer),
+    ]);
+    console.log("Successfully uploaded files to Firebase Storage.");
+    
+    const [wordUrl, excelUrl] = await Promise.all([
+        getDownloadURL(wordRef),
+        getDownloadURL(excelRef),
+    ]);
+    console.log("Successfully retrieved download URLs.");
 
-    // --- SUCCESS RESPONSE ---
-    // Return a success status and the public URLs for the generated files.
     return {
       success: true,
-      message: "Reports generated successfully!",
-      downloadLinks: {
-        wordUrl: `/output/${timestamp}/inspection_report.docx`,
-        excelUrl: `/output/${timestamp}/inspection_data.xlsx`,
-      },
+      message: "Reports generated and uploaded successfully!",
+      downloadLinks: { wordUrl, excelUrl },
     };
+
   } catch (error) {
     console.error("Failed to generate reports:", error);
-
-    // Provide a more specific error message if template files are missing.
-    if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
-        const missingPath = (error as NodeJS.ErrnoException).path || "a template file";
-        console.error(`Missing file: ${missingPath}`);
-        return {
-            success: false,
-            message: `A required template file was not found. Please ensure 'template.docx' and 'template.xlsx' exist in the 'public/templates' directory.`,
-        };
-    }
-
-    // For any other errors, return a generic failure message.
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     return {
       success: false,
-      message: `An unexpected error occurred: ${error instanceof Error ? error.message : "Unknown error"}`,
+      message: `Report generation failed: ${errorMessage}`,
     };
   }
 }
+
+async function generateDocx(data: InspectionFormData, templateDir: string): Promise<Buffer> {
+    try {
+        const wordTemplatePath = path.join(templateDir, "template.docx");
+        const wordTemplateContent = await fs.readFile(wordTemplatePath);
+        const zip = new PizZip(wordTemplateContent);
+
+        const imageOpts = {
+            centered: false,
+            fileType: "docx",
+            getImage: (tagValue: string) => {
+                if (!tagValue) return null;
+                return Buffer.from(tagValue.substring(tagValue.indexOf(",") + 1), "base64");
+            },
+            getSize: () => [212, 283],
+        };
+
+        const doc = new Docxtemplater(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+            modules: [new ImageModule(imageOpts)],
+            nullGetter: () => "N/A", // Handle missing data gracefully
+        });
+
+        // Map form data to placeholders, handling potential camelCase vs. snake_case mismatches.
+        const templateData: Record<string, any> = {
+          drone_name: data.droneName,
+          title: data.droneName,
+          date: data.date ? format(data.date, "PPP") : "N/A",
+          technician: data.technician,
+          supervisor: data.supervisor,
+          company: data.company,
+          owner: data.company,
+          aircraft_model: data.aircraftModel,
+          manufacturer: data.manufacturer,
+          aircraft_type: data.aircraftType,
+          serial_no: data.serialNo,
+          visual_inspection_notes: data.visualInspectionNotes || "N/A",
+          function_inspection_notes: data.functionInspectionNotes || "N/A",
+          deep_clean_notes: data.deepCleanNotes || "N/A",
+          firmware_update: data.firmwareUpdate || "N/A",
+          calibration_notes: data.calibrationNotes || "N/A",
+          additional_repairs_notes: data.additionalRepairsNotes || "N/A",
+        };
+
+        for (let i = 0; i < MAX_IMAGES; i++) {
+            templateData[`image_${i + 1}`] = data.images[i] || null;
+        }
+        
+        // This makes all form fields available via their original camelCase names too
+        Object.assign(templateData, data);
+
+        doc.render(templateData);
+
+        return doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
+    } catch (error) {
+        if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+            throw new Error("Word template file ('template.docx') not found in 'public/templates'.");
+        }
+        throw new Error(`Failed to generate Word document: ${error instanceof Error ? error.message : error}`);
+    }
+}
+
+async function generateXlsx(data: InspectionFormData, templateDir: string): Promise<Buffer> {
+    try {
+        const excelTemplatePath = path.join(templateDir, "template.xlsx");
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(excelTemplatePath);
+        
+        const worksheet = workbook.getWorksheet("Sheet2");
+        if (!worksheet) {
+            throw new Error("Worksheet 'Sheet2' not found in the Excel template.");
+        }
+
+        // Instead of adding a new row, we populate specific cells in the template.
+        // NOTE: These cell references are assumptions and may need adjustment for your template.
+        const cellMappings: { [key: string]: string } = {
+            'B2': data.droneName,
+            'B3': data.date ? format(data.date, "yyyy-MM-dd") : "N/A",
+            'B4': data.technician,
+            'B5': data.supervisor,
+            'E2': data.company,
+            'E3': data.aircraftModel,
+            'E4': data.manufacturer,
+            'E5': data.aircraftType,
+            'E6': data.serialNo,
+            'B8': data.visualInspectionNotes,
+            'B9': 'functionInspectionNotes', // Note: key correction
+            'B10': data.deepCleanNotes,
+            'B11': data.firmwareUpdate,
+            'B12': data.calibrationNotes,
+            'B13': data.additionalRepairsNotes,
+        };
+
+        for (const cell in cellMappings) {
+            const value = cellMappings[cell] || "N/A";
+            worksheet.getCell(cell).value = value;
+        }
+
+        return await workbook.xlsx.writeBuffer();
+    } catch (error) {
+        if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+            throw new Error("Excel template file ('template.xlsx') not found in 'public/templates'.");
+        }
+        throw new Error(`Failed to generate Excel document: ${error instanceof Error ? error.message : error}`);
+    }
+}
+
+    

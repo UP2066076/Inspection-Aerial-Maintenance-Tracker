@@ -12,6 +12,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
+// For debugging: Log the config to see if env vars are loaded.
+// You can check this in the terminal where you run `npm run dev`.
+console.log("Firebase Config Loaded:", firebaseConfig);
+
+// Critical check to ensure storageBucket is defined.
+if (!firebaseConfig.storageBucket) {
+    throw new Error("Firebase configuration error: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not defined in your environment variables. Please check your .env or .env.local file and restart the development server.");
+}
+
 // Initialize Firebase for server-side and client-side
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const storage = getStorage(app);

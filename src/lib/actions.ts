@@ -98,7 +98,7 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const templateData: Record<string, any> = {
           drone_name: data.droneName,
           title: data.droneName,
-          date: data.date ? format(data.date, "PPP") : "N/A",
+          date: data.date ? format(data.date, "dd/MM/yy") : "N/A",
           technician: data.technician,
           supervisor: data.supervisor,
           company: data.company,

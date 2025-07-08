@@ -9,11 +9,20 @@ import ExcelJS from "exceljs";
 import { format } from "date-fns";
 import type { InspectionFormData } from "./types";
 import { MAX_IMAGES } from "./types";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 // The image module is a CommonJS module, which is fine for server-side code.
 const ImageModule = require("docxtemplater-image-module-free");
+
+async function createOutputDirectory(timestamp: number): Promise<string> {
+  const outputDir = path.join(process.cwd(), "public", "output", String(timestamp));
+  try {
+    await fs.mkdir(outputDir, { recursive: true });
+    return outputDir;
+  } catch (error) {
+    console.error("Failed to create output directory:", error);
+    throw new Error("Could not create server directory for reports.");
+  }
+}
 
 export async function generateReport(data: InspectionFormData): Promise<{
   success: boolean;
@@ -25,35 +34,32 @@ export async function generateReport(data: InspectionFormData): Promise<{
   try {
     const timestamp = Date.now();
     const templateDir = path.resolve(process.cwd(), "public/templates");
+    const outputDir = await createOutputDirectory(timestamp);
+    const outputPath = `/output/${timestamp}`;
 
-    // --- Generate Documents in Memory ---
+    // --- Generate Documents and Save to Disk ---
     const [docxBuffer, xlsxBuffer] = await Promise.all([
       generateDocx(data, templateDir),
       generateXlsx(data, templateDir),
     ]);
     console.log("Successfully generated DOCX and XLSX buffers.");
 
-    // --- Upload to Firebase Storage ---
-    const reportPath = `reports/${timestamp}`;
-    const wordRef = ref(storage, `${reportPath}/inspection_report.docx`);
-    const excelRef = ref(storage, `${reportPath}/inspection_data.xlsx`);
-    
-    await Promise.all([
-        uploadBytes(wordRef, docxBuffer),
-        uploadBytes(excelRef, xlsxBuffer),
-    ]);
-    console.log("Successfully uploaded files to Firebase Storage.");
-    
-    const [wordUrl, excelUrl] = await Promise.all([
-        getDownloadURL(wordRef),
-        getDownloadURL(excelRef),
-    ]);
-    console.log("Successfully retrieved download URLs.");
+    const wordOutputPath = path.join(outputDir, "inspection_report.docx");
+    const excelOutputPath = path.join(outputDir, "inspection_data.xlsx");
 
+    await Promise.all([
+        fs.writeFile(wordOutputPath, docxBuffer),
+        fs.writeFile(excelOutputPath, xlsxBuffer),
+    ]);
+    console.log("Successfully saved files to disk.");
+    
     return {
       success: true,
-      message: "Reports generated and uploaded successfully!",
-      downloadLinks: { wordUrl, excelUrl },
+      message: "Reports generated and saved successfully!",
+      downloadLinks: { 
+          wordUrl: `${outputPath}/inspection_report.docx`,
+          excelUrl: `${outputPath}/inspection_data.xlsx`,
+       },
     };
 
   } catch (error) {
@@ -88,8 +94,7 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
             modules: [new ImageModule(imageOpts)],
             nullGetter: () => "N/A", // Handle missing data gracefully
         });
-
-        // Map form data to placeholders, handling potential camelCase vs. snake_case mismatches.
+        
         const templateData: Record<string, any> = {
           drone_name: data.droneName,
           title: data.droneName,
@@ -114,7 +119,6 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
             templateData[`image_${i + 1}`] = data.images[i] || null;
         }
         
-        // This makes all form fields available via their original camelCase names too
         Object.assign(templateData, data);
 
         doc.render(templateData);
@@ -139,9 +143,7 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
             throw new Error("Worksheet 'Sheet2' not found in the Excel template.");
         }
 
-        // Instead of adding a new row, we populate specific cells in the template.
-        // NOTE: These cell references are assumptions and may need adjustment for your template.
-        const cellMappings: { [key: string]: string } = {
+        const cellMappings: { [key: string]: any } = {
             'B2': data.droneName,
             'B3': data.date ? format(data.date, "yyyy-MM-dd") : "N/A",
             'B4': data.technician,
@@ -152,7 +154,7 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
             'E5': data.aircraftType,
             'E6': data.serialNo,
             'B8': data.visualInspectionNotes,
-            'B9': 'functionInspectionNotes', // Note: key correction
+            'B9': data.functionInspectionNotes,
             'B10': data.deepCleanNotes,
             'B11': data.firmwareUpdate,
             'B12': data.calibrationNotes,
@@ -160,11 +162,10 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
         };
 
         for (const cell in cellMappings) {
-            const value = cellMappings[cell] || "N/A";
-            worksheet.getCell(cell).value = value;
+            worksheet.getCell(cell).value = cellMappings[cell] || "N/A";
         }
 
-        return await workbook.xlsx.writeBuffer();
+        return await workbook.xlsx.writeBuffer() as Buffer;
     } catch (error) {
         if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
             throw new Error("Excel template file ('template.xlsx') not found in 'public/templates'.");
@@ -172,5 +173,3 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
         throw new Error(`Failed to generate Excel document: ${error instanceof Error ? error.message : error}`);
     }
 }
-
-    

@@ -11,9 +11,6 @@ export default function Home() {
           <p className="mt-3 text-lg text-muted-foreground">
             Complete the fields below to generate your inspection report.
           </p>
-          <p className="mt-2 text-sm text-muted-foreground/80">
-            Note: This application requires `template.docx` and `template.xlsx` in the `public` folder.
-          </p>
         </div>
         <DroneInspectionForm />
       </div>

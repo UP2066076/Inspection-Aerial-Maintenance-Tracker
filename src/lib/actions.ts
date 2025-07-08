@@ -98,10 +98,10 @@ export async function generateReport(data: InspectionFormData): Promise<{
     // --- EXCEL DOCUMENT GENERATION ---
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(excelTemplatePath);
-    const worksheet = workbook.getWorksheet(1); // Get the first worksheet.
+    const worksheet = workbook.getWorksheet("Sheet2"); // Get worksheet by name.
 
     if (!worksheet) {
-      throw new Error("Could not find a worksheet in the Excel template.");
+      throw new Error("Sheet2 not found in the Excel template.");
     }
 
     // Add a new row with the inspection data.

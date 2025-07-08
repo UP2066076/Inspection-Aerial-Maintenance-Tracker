@@ -98,7 +98,7 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const templateData: Record<string, any> = {
           drone_name: data.droneName,
           title: data.droneName,
-          date: data.date ? format(data.date, "dd/MM/yy") : "N/A",
+          date: data.date ? format(new Date(data.date), "dd/MM/yy") : "N/A",
           technician: data.technician,
           supervisor: data.supervisor,
           company: data.company,
@@ -118,8 +118,6 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         for (let i = 0; i < MAX_IMAGES; i++) {
             templateData[`image_${i + 1}`] = data.images[i] || null;
         }
-        
-        Object.assign(templateData, data);
 
         doc.render(templateData);
 
@@ -144,13 +142,14 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
         }
 
         const cellMappings: { [key: string]: any } = {
-            'N2': data.droneName,
-            'K2': data.date ? format(data.date, "yyyy-MM-dd") : "N/A",
+            'K2': data.date ? format(new Date(data.date), "yyyy-MM-dd") : "N/A",
             'B2': data.company,
-            'F2': data.aircraftModel,
-            'D2': data.manufacturer,
+            'E3': data.aircraftModel,
+            'D2': a.manufacturer,
             'H2': data.aircraftType,
             'C2': data.serialNo,
+            'F2': data.aircraftModel,
+            'N2': data.droneName,
             'D4': data.visualInspectionNotes,
             'D9': data.functionInspectionNotes,
             'D19': data.deepCleanNotes,

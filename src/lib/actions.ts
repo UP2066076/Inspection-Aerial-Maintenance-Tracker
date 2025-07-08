@@ -145,7 +145,7 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
             'K2': data.date ? format(new Date(data.date), "yyyy-MM-dd") : "N/A",
             'B2': data.company,
             'E3': data.aircraftModel,
-            'D2': a.manufacturer,
+            'D2': data.manufacturer,
             'H2': data.aircraftType,
             'C2': data.serialNo,
             'F2': data.aircraftModel,

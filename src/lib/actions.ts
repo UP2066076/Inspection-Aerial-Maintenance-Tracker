@@ -10,8 +10,7 @@ import { format } from "date-fns";
 import type { InspectionFormData } from "./types";
 import { MAX_IMAGES } from "./types";
 
-// The image module is a CommonJS module, which is fine for server-side code.
-const ImageModule = require("docxtemplater-image-module-free");
+// NOTE: We are no longer using docxtemplater-image-module-free.
 
 async function createOutputDirectory(timestamp: number): Promise<string> {
   const outputDir = path.join(process.cwd(), "public", "output", String(timestamp));
@@ -76,26 +75,12 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
     try {
         const wordTemplatePath = path.join(templateDir, "template.docx");
         const wordTemplateContent = await fs.readFile(wordTemplatePath);
-        const zip = new PizZip(wordTemplateContent);
-
-        const imageModule = new ImageModule({
-            getImage: function(tagValue: string) {
-                // This console.log is for debugging as requested
-                console.log("ImageModule.getImage called for tagValue (first 30 chars):", tagValue ? tagValue.slice(0, 30) : "null");
-                
-                if (!tagValue || !tagValue.startsWith("data:image")) return Buffer.from(""); // Safe fallback
-                const base64 = tagValue.replace(/^data:image\/\w+;base64,/, "");
-                return Buffer.from(base64, "base64");
-            },
-            getSize: function() {
-                return [212, 283];
-            }
-        });
-
-        const doc = new Docxtemplater(zip, {
+        
+        // Step 1: Use Docxtemplater for text replacements ONLY.
+        const textOnlyZip = new PizZip(wordTemplateContent);
+        const doc = new Docxtemplater(textOnlyZip, {
             paragraphLoop: false,
-            modules: [imageModule],
-            nullGetter: () => "", // Return empty string for other null values
+            nullGetter: () => "", // Return empty string for null values
         });
         
         const templateData: Record<string, any> = {
@@ -118,17 +103,36 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
           additional_repairs_notes: data.additionalRepairsNotes || "None",
         };
 
-        for (let i = 0; i < MAX_IMAGES; i++) {
-          const image = data.images[i];
-          if (image && image.startsWith("data:image")) {
-            templateData[`image_${i + 1}`] = image;
-          }
-        }
-
         doc.setData(templateData);
         doc.render();
 
-        return doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
+        const textReplacedBuffer = doc.getZip().generate({ type: "nodebuffer" });
+
+        // Step 2: Use PizZip to manually replace image files.
+        const imageHandlingZip = new PizZip(textReplacedBuffer);
+
+        for (let i = 0; i < MAX_IMAGES; i++) {
+          const image = data.images[i];
+          // IMPORTANT: This assumes placeholder images in template are internally named 'image_1.png', 'image_2.png', etc.
+          const placeholderFileName = `word/media/image_${i + 1}.png`; 
+          
+          if (image && image.startsWith("data:image")) {
+              const imageFile = imageHandlingZip.file(placeholderFileName);
+              
+              if (imageFile) {
+                  const base64 = image.replace(/^data:image\/\w+;base64,/, "");
+                  const imageBuffer = Buffer.from(base64, "base64");
+                  // Replace the placeholder image file with the new image buffer
+                  imageHandlingZip.file(placeholderFileName, imageBuffer);
+                  console.log(`Replaced ${placeholderFileName} with new image data.`);
+              } else {
+                  console.warn(`Placeholder file ${placeholderFileName} not found in DOCX. Skipping image ${i + 1}.`);
+              }
+          }
+        }
+
+        return imageHandlingZip.generate({ type: "nodebuffer", compression: "DEFLATE" });
+
     } catch (error) {
         console.error("Full error in generateDocx:", error);
         if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {

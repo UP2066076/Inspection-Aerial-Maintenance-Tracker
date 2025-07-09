@@ -83,7 +83,7 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
                 // This console.log is for debugging as requested
                 console.log("ImageModule.getImage called for tagValue (first 30 chars):", tagValue ? tagValue.slice(0, 30) : "null");
                 
-                if (!tagValue) return null;
+                if (!tagValue || !tagValue.startsWith("data:image")) return Buffer.from(""); // Safe fallback
                 const base64 = tagValue.replace(/^data:image\/\w+;base64,/, "");
                 return Buffer.from(base64, "base64");
             },

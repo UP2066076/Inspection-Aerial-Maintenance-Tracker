@@ -44,8 +44,8 @@ export async function generateReport(data: InspectionFormData): Promise<{
     ]);
     console.log("Successfully generated DOCX and XLSX buffers.");
 
-    const wordOutputPath = path.join(outputDir, "inspection_report.docx");
-    const excelOutputPath = path.join(outputDir, "inspection_data.xlsx");
+    const wordOutputPath = path.join(outputDir, `${data.reportName}.docx`);
+    const excelOutputPath = path.join(outputDir, `${data.serviceSheetName}.xlsx`);
 
     await Promise.all([
         fs.writeFile(wordOutputPath, docxBuffer),
@@ -57,8 +57,8 @@ export async function generateReport(data: InspectionFormData): Promise<{
       success: true,
       message: "Reports generated and saved successfully!",
       downloadLinks: { 
-          wordUrl: `${outputPath}/inspection_report.docx`,
-          excelUrl: `${outputPath}/inspection_data.xlsx`,
+          wordUrl: `${outputPath}/${data.reportName}.docx`,
+          excelUrl: `${outputPath}/${data.serviceSheetName}.xlsx`,
        },
     };
 
@@ -107,12 +107,12 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
           manufacturer: data.manufacturer,
           aircraft_type: data.aircraftType,
           serial_no: data.serialNo,
-          visual_inspection_notes: data.visualInspectionNotes || "N/A",
-          function_inspection_notes: data.functionInspectionNotes || "N/A",
-          deep_clean_notes: data.deepCleanNotes || "N/A",
-          firmware_update: data.firmwareUpdate || "N/A",
-          calibration_notes: data.calibrationNotes || "N/A",
-          additional_repairs_notes: data.additionalRepairsNotes || "N/A",
+          visual_inspection_notes: data.visualInspectionNotes || "None",
+          function_inspection_notes: data.functionInspectionNotes || "None",
+          deep_clean_notes: data.deepCleanNotes || "None",
+          firmware_update: data.firmwareUpdate || "None",
+          calibration_notes: data.calibrationNotes || "None",
+          additional_repairs_notes: data.additionalRepairsNotes || "None",
         };
 
         for (let i = 0; i < MAX_IMAGES; i++) {

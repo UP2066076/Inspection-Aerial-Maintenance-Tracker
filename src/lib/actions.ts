@@ -83,15 +83,18 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
             fileType: "docx",
             getImage: (tagValue: string) => {
                 if (!tagValue) return null;
-                return Buffer.from(tagValue.substring(tagValue.indexOf(",") + 1), "base64");
+                const base64 = tagValue.replace(/^data:image\/\w+;base64,/, "");
+                return Buffer.from(base64, "base64");
             },
             getSize: () => [212, 283],
         };
 
+        const imageModule = new ImageModule(imageOpts);
+
         const doc = new Docxtemplater(zip, {
-            paragraphLoop: true,
+            paragraphLoop: false,
             linebreaks: true,
-            modules: [new ImageModule(imageOpts)],
+            modules: [imageModule],
             nullGetter: () => "N/A", // Handle missing data gracefully
         });
         

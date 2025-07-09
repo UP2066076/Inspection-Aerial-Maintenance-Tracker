@@ -14,6 +14,10 @@ import { MAX_IMAGES } from "./types";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ImageModule = require("docxtemplater-image-module-free");
 
+// The base64 representation of a 1x1 transparent PNG. Used as a fallback.
+const BLANK_IMAGE_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+
 async function createOutputDirectory(timestamp: number): Promise<string> {
   const outputDir = path.join(process.cwd(), "public", "output", String(timestamp));
   try {
@@ -80,10 +84,11 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
 
         const imageModule = new ImageModule({
             getImage: function(tagValue: string) {
-                // tagValue is the base64 data
+                // Here, tagValue is the base64 data (either the real image or the blank placeholder)
                 return Buffer.from(tagValue, "base64");
             },
             getSize: function() {
+                // Return the fixed size for all images. The transparent one will be invisible.
                 return ['5.62cm', '7.5cm'];
             }
         });
@@ -91,7 +96,7 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const zip = new PizZip(wordTemplateContent);
         const doc = new Docxtemplater(zip, {
             modules: [imageModule],
-            paragraphLoop: true, // This is important for image replacement
+            paragraphLoop: true, // This is crucial for replacing tags inside paragraphs
         });
 
         const templateData: Record<string, any> = {
@@ -114,14 +119,15 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
           additional_repairs_notes: data.additionalRepairsNotes || "None",
         };
 
-        // Loop through images and add to templateData
+        // Prepare image data, using a blank placeholder for missing images
         for (let i = 0; i < MAX_IMAGES; i++) {
             const image = data.images[i];
-            // Ensure the image is a valid data URI before processing
             if (image && image.startsWith("data:image")) {
-                // Strip the data URI prefix to get the raw base64 string
                 const base64 = image.replace(/^data:image\/\w+;base64,/, "");
                 templateData[`image_${i + 1}`] = base64;
+            } else {
+                // If image is missing or invalid, use the blank placeholder to prevent corruption
+                templateData[`image_${i + 1}`] = BLANK_IMAGE_BASE64;
             }
         }
         

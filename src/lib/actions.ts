@@ -119,9 +119,10 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         };
 
         for (let i = 0; i < MAX_IMAGES; i++) {
-            if (data.images[i]) {
-                templateData[`image_${i + 1}`] = data.images[i];
-            }
+          const image = data.images[i];
+          if (image && image.startsWith("data:image")) {
+            templateData[`image_${i + 1}`] = image;
+          }
         }
 
         doc.setData(templateData);

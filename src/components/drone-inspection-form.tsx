@@ -24,12 +24,14 @@ import { ImageUploader } from "./image-uploader";
 
 export function DroneInspectionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [downloadLinks, setDownloadLinks] = useState<{ wordUrl: string; excelUrl: string } | null>(null);
+  const [downloadInfo, setDownloadInfo] = useState<{ wordUrl: string; excelUrl: string; reportName: string; serviceSheetName: string; } | null>(null);
   const { toast } = useToast();
 
   const form = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionFormSchema),
     defaultValues: {
+      reportName: "",
+      serviceSheetName: "",
       droneName: "",
       technician: "",
       supervisor: "",
@@ -50,7 +52,7 @@ export function DroneInspectionForm() {
 
   async function onSubmit(data: InspectionFormData) {
     setIsSubmitting(true);
-    setDownloadLinks(null);
+    setDownloadInfo(null);
 
     const result = await generateReport(data);
 
@@ -59,7 +61,11 @@ export function DroneInspectionForm() {
         title: "Success!",
         description: result.message,
       });
-      setDownloadLinks(result.downloadLinks);
+      setDownloadInfo({
+        ...result.downloadLinks,
+        reportName: data.reportName,
+        serviceSheetName: data.serviceSheetName
+      });
       form.reset();
     } else {
       toast({
@@ -81,7 +87,7 @@ export function DroneInspectionForm() {
     "additionalRepairsNotes",
   ];
 
-  if (downloadLinks) {
+  if (downloadInfo) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader className="text-center">
@@ -91,18 +97,18 @@ export function DroneInspectionForm() {
         </CardHeader>
         <CardContent className="flex justify-center gap-4">
           <Button asChild>
-            <a href={downloadLinks.wordUrl} download="inspection_report.docx">
-              <Download className="mr-2 h-4 w-4" /> Word Document
+            <a href={downloadInfo.wordUrl} download={`${downloadInfo.reportName}.docx`}>
+              <Download className="mr-2 h-4 w-4" /> Report Document
             </a>
           </Button>
           <Button asChild>
-            <a href={downloadLinks.excelUrl} download="inspection_data.xlsx">
-              <Download className="mr-2 h-4 w-4" /> Excel File
+            <a href={downloadInfo.excelUrl} download={`${downloadInfo.serviceSheetName}.xlsx`}>
+              <Download className="mr-2 h-4 w-4" /> Service Sheet
             </a>
           </Button>
         </CardContent>
         <CardFooter className="flex justify-center">
-            <Button variant="outline" onClick={() => setDownloadLinks(null)}>Create Another Report</Button>
+            <Button variant="outline" onClick={() => setDownloadInfo(null)}>Create Another Report</Button>
         </CardFooter>
       </Card>
     );
@@ -113,12 +119,27 @@ export function DroneInspectionForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <Card>
             <CardHeader>
+                <CardTitle>File Details</CardTitle>
+                <CardDescription>Enter the names for your generated report files.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <FormField control={form.control} name="reportName" render={({ field }) => (
+                    <FormItem><FormLabel>Report Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="serviceSheetName" render={({ field }) => (
+                    <FormItem><FormLabel>Service Sheet Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
                 <CardTitle>Inspection Details</CardTitle>
                 <CardDescription>Enter the general details for this inspection.</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <FormField control={form.control} name="droneName" render={({ field }) => (
-                    <FormItem><FormLabel>Drone Name</FormLabel><FormControl><Input placeholder="e.g. Maverick-01" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Drone Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="date" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild>
@@ -133,10 +154,10 @@ export function DroneInspectionForm() {
                     </PopoverContent></Popover><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="technician" render={({ field }) => (
-                    <FormItem><FormLabel>Technician</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Technician</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="supervisor" render={({ field }) => (
-                    <FormItem><FormLabel>Supervisor</FormLabel><FormControl><Input placeholder="Jane Smith" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Supervisor</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
             </CardContent>
         </Card>
@@ -148,19 +169,19 @@ export function DroneInspectionForm() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField control={form.control} name="company" render={({ field }) => (
-                    <FormItem><FormLabel>Company</FormLabel><FormControl><Input placeholder="Owner's Company Name" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="aircraftModel" render={({ field }) => (
-                    <FormItem><FormLabel>Aircraft Model</FormLabel><FormControl><Input placeholder="e.g. Phantom 4 Pro" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Aircraft Model</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="manufacturer" render={({ field }) => (
-                    <FormItem><FormLabel>Manufacturer</FormLabel><FormControl><Input placeholder="e.g. DJI" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Manufacturer</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="aircraftType" render={({ field }) => (
-                    <FormItem><FormLabel>Aircraft Type</FormLabel><FormControl><Input placeholder="e.g. Quadcopter" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Aircraft Type</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="serialNo" render={({ field }) => (
-                    <FormItem className="md:col-span-2"><FormLabel>Serial No.</FormLabel><FormControl><Input placeholder="Enter Serial Number" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem className="md:col-span-2"><FormLabel>Serial No.</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
             </CardContent>
         </Card>
@@ -176,7 +197,7 @@ export function DroneInspectionForm() {
                         <FormItem className="md:col-span-2">
                             <FormLabel>{fieldName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</FormLabel>
                             <FormControl>
-                                <Textarea placeholder={`Detailed notes for ${fieldName.replace(/([A-Z])/g, ' $1').toLowerCase()}...`} className="resize-y min-h-[100px]" {...field} />
+                                <Textarea className="resize-y min-h-[100px]" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -202,7 +223,7 @@ export function DroneInspectionForm() {
             </CardContent>
         </Card>
         
-        <div className="flex justify-end">
+        <div className="flex justify-center">
             <Button 
                 type="submit" 
                 disabled={isSubmitting} 

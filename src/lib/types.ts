@@ -3,6 +3,8 @@ import { z } from "zod";
 export const MAX_IMAGES = 6;
 
 export const inspectionFormSchema = z.object({
+  reportName: z.string().min(1, "Report name is required"),
+  serviceSheetName: z.string().min(1, "Service sheet name is required"),
   droneName: z.string().min(1, "Drone name is required"),
   date: z.date({ required_error: "A date is required." }),
   technician: z.string().min(1, "Technician name is required"),

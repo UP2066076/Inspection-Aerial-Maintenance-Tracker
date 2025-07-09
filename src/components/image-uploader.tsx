@@ -24,28 +24,22 @@ const resizeImage = (file: File): Promise<string> => {
         const maxWidth = 212;
         const maxHeight = 283;
         const { width: originalWidth, height: originalHeight } = img;
-        
-        let newWidth = originalWidth;
-        let newHeight = originalHeight;
 
-        if (newWidth > maxWidth) {
-          newWidth = maxWidth;
-          newHeight = (newWidth * originalHeight) / originalWidth;
-        }
+        const ratio = Math.min(maxWidth / originalWidth, maxHeight / originalHeight);
+        const newWidth = originalWidth * ratio;
+        const newHeight = originalHeight * ratio;
 
-        if (newHeight > maxHeight) {
-          newHeight = maxHeight;
-          newWidth = (newHeight * originalWidth) / originalHeight;
-        }
-        
         const canvas = document.createElement('canvas');
-        canvas.width = newWidth;
-        canvas.height = newHeight;
+        canvas.width = maxWidth;
+        canvas.height = maxHeight;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject(new Error("Could not get canvas context."));
-        
-        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+        const xOffset = (maxWidth - newWidth) / 2;
+        const yOffset = (maxHeight - newHeight) / 2;
+
+        ctx.drawImage(img, xOffset, yOffset, newWidth, newHeight);
         resolve(canvas.toDataURL(file.type));
       };
       img.onerror = (err) => reject(err);

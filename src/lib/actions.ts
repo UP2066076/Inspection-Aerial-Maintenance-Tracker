@@ -78,27 +78,20 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const wordTemplatePath = path.join(templateDir, "template.docx");
         const wordTemplateContent = await fs.readFile(wordTemplatePath);
 
-        const imageOptions = {
-            // The `getImage` function receives the raw base64 string.
+        const imageModule = new ImageModule({
             getImage: function(tagValue: string) {
-                if (!tagValue) {
-                    return Buffer.from("");
-                }
+                // tagValue is the base64 data
                 return Buffer.from(tagValue, "base64");
             },
-            // The `getSize` function returns the dimensions [width, height] in pixels.
             getSize: function() {
-                return [212, 283];
-            },
-        };
-
-        const imageModule = new ImageModule(imageOptions);
+                return ['5.62cm', '7.5cm'];
+            }
+        });
 
         const zip = new PizZip(wordTemplateContent);
         const doc = new Docxtemplater(zip, {
             modules: [imageModule],
-            paragraphLoop: false,
-            nullGetter: () => "",
+            paragraphLoop: true, // This is important for image replacement
         });
 
         const templateData: Record<string, any> = {
@@ -121,10 +114,12 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
           additional_repairs_notes: data.additionalRepairsNotes || "None",
         };
 
-        // Prepare image data by stripping the Data URI prefix
+        // Loop through images and add to templateData
         for (let i = 0; i < MAX_IMAGES; i++) {
             const image = data.images[i];
+            // Ensure the image is a valid data URI before processing
             if (image && image.startsWith("data:image")) {
+                // Strip the data URI prefix to get the raw base64 string
                 const base64 = image.replace(/^data:image\/\w+;base64,/, "");
                 templateData[`image_${i + 1}`] = base64;
             }

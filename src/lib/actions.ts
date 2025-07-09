@@ -91,7 +91,6 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
 
         const doc = new Docxtemplater(zip, {
             paragraphLoop: false,
-            linebreaks: true,
             modules: [imageModule],
             nullGetter: () => "N/A", // Handle missing data gracefully
         });
@@ -171,3 +170,4 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
         throw new Error(`Failed to generate Excel document: ${error instanceof Error ? error.message : error}`);
     }
 }
+

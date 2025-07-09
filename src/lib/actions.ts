@@ -95,7 +95,7 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const doc = new Docxtemplater(zip, {
             paragraphLoop: false,
             modules: [imageModule],
-            nullGetter: () => "N/A",
+            nullGetter: () => "", // Return empty string for other null values
         });
         
         const templateData: Record<string, any> = {
@@ -119,7 +119,9 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         };
 
         for (let i = 0; i < MAX_IMAGES; i++) {
-            templateData[`image_${i + 1}`] = data.images[i] || null;
+            if (data.images[i]) {
+                templateData[`image_${i + 1}`] = data.images[i];
+            }
         }
 
         doc.setData(templateData);

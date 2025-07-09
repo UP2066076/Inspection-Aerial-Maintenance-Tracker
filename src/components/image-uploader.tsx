@@ -20,12 +20,29 @@ const resizeImage = (file: File): Promise<string> => {
       const img = document.createElement('img');
       img.src = event.target.result as string;
       img.onload = () => {
+        const maxWidth = 212;
+        const maxHeight = 283;
         const canvas = document.createElement('canvas');
-        canvas.width = 212;
-        canvas.height = 283;
+        canvas.width = maxWidth;
+        canvas.height = maxHeight;
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject(new Error("Could not get canvas context."));
-        ctx.drawImage(img, 0, 0, 212, 283);
+
+        const { width: originalWidth, height: originalHeight } = img;
+        const ratio = originalWidth / originalHeight;
+
+        let newWidth = maxWidth;
+        let newHeight = newWidth / ratio;
+
+        if (newHeight > maxHeight) {
+            newHeight = maxHeight;
+            newWidth = newHeight * ratio;
+        }
+
+        const x = (maxWidth - newWidth) / 2;
+        const y = (maxHeight - newHeight) / 2;
+        
+        ctx.drawImage(img, x, y, newWidth, newHeight);
         resolve(canvas.toDataURL(file.type));
       };
       img.onerror = (err) => reject(err);
@@ -102,10 +119,10 @@ export function ImageUploader({ value = [], onChange }: { value: string[], onCha
       <CardContent className="p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           {Array.from({ length: MAX_IMAGES }).map((_, index) => (
-            <div key={index} className="aspect-[3/4] relative">
+            <div key={index} className="aspect-[3/4] relative bg-muted/20 rounded-md">
               {value[index] ? (
                 <>
-                  <Image src={value[index]} alt={`Upload preview ${index + 1}`} layout="fill" className="rounded-md object-cover" />
+                  <Image src={value[index]} alt={`Upload preview ${index + 1}`} layout="fill" className="rounded-md object-contain" />
                   <Button
                     type="button"
                     variant="destructive"

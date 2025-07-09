@@ -36,6 +36,10 @@ const resizeImage = (file: File): Promise<string> => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject(new Error("Could not get canvas context."));
 
+        // Fill the background with white
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, maxWidth, maxHeight);
+
         const xOffset = (maxWidth - newWidth) / 2;
         const yOffset = (maxHeight - newHeight) / 2;
 

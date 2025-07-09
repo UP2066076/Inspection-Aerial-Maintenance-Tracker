@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, ChangeEvent, DragEvent } from 'react';
@@ -22,27 +23,29 @@ const resizeImage = (file: File): Promise<string> => {
       img.onload = () => {
         const maxWidth = 212;
         const maxHeight = 283;
-        const canvas = document.createElement('canvas');
-        canvas.width = maxWidth;
-        canvas.height = maxHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error("Could not get canvas context."));
-
         const { width: originalWidth, height: originalHeight } = img;
-        const ratio = originalWidth / originalHeight;
+        
+        let newWidth = originalWidth;
+        let newHeight = originalHeight;
 
-        let newWidth = maxWidth;
-        let newHeight = newWidth / ratio;
-
-        if (newHeight > maxHeight) {
-            newHeight = maxHeight;
-            newWidth = newHeight * ratio;
+        if (newWidth > maxWidth) {
+          newWidth = maxWidth;
+          newHeight = (newWidth * originalHeight) / originalWidth;
         }
 
-        const x = (maxWidth - newWidth) / 2;
-        const y = (maxHeight - newHeight) / 2;
+        if (newHeight > maxHeight) {
+          newHeight = maxHeight;
+          newWidth = (newHeight * originalWidth) / originalHeight;
+        }
         
-        ctx.drawImage(img, x, y, newWidth, newHeight);
+        const canvas = document.createElement('canvas');
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error("Could not get canvas context."));
+        
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
         resolve(canvas.toDataURL(file.type));
       };
       img.onerror = (err) => reject(err);

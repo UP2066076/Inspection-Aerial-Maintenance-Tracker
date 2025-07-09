@@ -80,6 +80,9 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
 
         const imageModule = new ImageModule({
             getImage: function(tagValue: string) {
+                // This console.log is for debugging as requested
+                console.log("ImageModule.getImage called for tagValue (first 30 chars):", tagValue ? tagValue.slice(0, 30) : "null");
+                
                 if (!tagValue) return null;
                 const base64 = tagValue.replace(/^data:image\/\w+;base64,/, "");
                 return Buffer.from(base64, "base64");
@@ -92,7 +95,7 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const doc = new Docxtemplater(zip, {
             paragraphLoop: false,
             modules: [imageModule],
-            nullGetter: () => "N/A", // Handle missing data gracefully
+            nullGetter: () => "N/A",
         });
         
         const templateData: Record<string, any> = {
@@ -119,14 +122,16 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
             templateData[`image_${i + 1}`] = data.images[i] || null;
         }
 
-        doc.render(templateData);
+        doc.setData(templateData);
+        doc.render();
 
         return doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
     } catch (error) {
+        console.error("Full error in generateDocx:", error);
         if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
             throw new Error("Word template file ('template.docx') not found in 'public/templates'.");
         }
-        throw new Error(`Failed to generate Word document: ${error instanceof Error ? error.message : error}`);
+        throw new Error(`Failed to generate Word document: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
@@ -167,7 +172,6 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
         if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
             throw new Error("Excel template file ('template.xlsx') not found in 'public/templates'.");
         }
-        throw new Error(`Failed to generate Excel document: ${error instanceof Error ? error.message : error}`);
+        throw new Error(`Failed to generate Excel document: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
-

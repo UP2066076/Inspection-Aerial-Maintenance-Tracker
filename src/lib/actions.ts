@@ -10,7 +10,9 @@ import { format } from "date-fns";
 import type { InspectionFormData } from "./types";
 import { MAX_IMAGES } from "./types";
 
-// NOTE: We are no longer using docxtemplater-image-module-free.
+// Using require for docxtemplater-image-module-free as it's a CJS module
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ImageModule = require("docxtemplater-image-module-free");
 
 async function createOutputDirectory(timestamp: number): Promise<string> {
   const outputDir = path.join(process.cwd(), "public", "output", String(timestamp));
@@ -75,14 +77,30 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
     try {
         const wordTemplatePath = path.join(templateDir, "template.docx");
         const wordTemplateContent = await fs.readFile(wordTemplatePath);
-        
-        // Step 1: Use Docxtemplater for text replacements ONLY.
-        const textOnlyZip = new PizZip(wordTemplateContent);
-        const doc = new Docxtemplater(textOnlyZip, {
+
+        const imageOptions = {
+            // The `getImage` function receives the raw base64 string.
+            getImage: function(tagValue: string) {
+                if (!tagValue) {
+                    return Buffer.from("");
+                }
+                return Buffer.from(tagValue, "base64");
+            },
+            // The `getSize` function returns the dimensions [width, height] in pixels.
+            getSize: function() {
+                return [212, 283];
+            },
+        };
+
+        const imageModule = new ImageModule(imageOptions);
+
+        const zip = new PizZip(wordTemplateContent);
+        const doc = new Docxtemplater(zip, {
+            modules: [imageModule],
             paragraphLoop: false,
-            nullGetter: () => "", // Return empty string for null values
+            nullGetter: () => "",
         });
-        
+
         const templateData: Record<string, any> = {
           drone_name: data.droneName,
           title: data.droneName,
@@ -103,42 +121,32 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
           additional_repairs_notes: data.additionalRepairsNotes || "None",
         };
 
+        // Prepare image data by stripping the Data URI prefix
+        for (let i = 0; i < MAX_IMAGES; i++) {
+            const image = data.images[i];
+            if (image && image.startsWith("data:image")) {
+                const base64 = image.replace(/^data:image\/\w+;base64,/, "");
+                templateData[`image_${i + 1}`] = base64;
+            }
+        }
+        
         doc.setData(templateData);
         doc.render();
 
-        const textReplacedBuffer = doc.getZip().generate({ type: "nodebuffer" });
+        return doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
 
-        // Step 2: Use PizZip to manually replace image files.
-        const imageHandlingZip = new PizZip(textReplacedBuffer);
-
-        for (let i = 0; i < MAX_IMAGES; i++) {
-          const image = data.images[i];
-          // IMPORTANT: This assumes placeholder images in template are internally named 'image_1.png', 'image_2.png', etc.
-          const placeholderFileName = `word/media/image_${i + 1}.png`; 
-          
-          if (image && image.startsWith("data:image")) {
-              const imageFile = imageHandlingZip.file(placeholderFileName);
-              
-              if (imageFile) {
-                  const base64 = image.replace(/^data:image\/\w+;base64,/, "");
-                  const imageBuffer = Buffer.from(base64, "base64");
-                  // Replace the placeholder image file with the new image buffer
-                  imageHandlingZip.file(placeholderFileName, imageBuffer);
-                  console.log(`Replaced ${placeholderFileName} with new image data.`);
-              } else {
-                  console.warn(`Placeholder file ${placeholderFileName} not found in DOCX. Skipping image ${i + 1}.`);
-              }
-          }
-        }
-
-        return imageHandlingZip.generate({ type: "nodebuffer", compression: "DEFLATE" });
-
-    } catch (error) {
+    } catch (error: any) {
         console.error("Full error in generateDocx:", error);
-        if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+        if (error.properties && error.properties.errors) {
+            error.properties.errors.forEach((err: any) => {
+                console.error("- DOCX Error:", err.properties.explanation);
+                console.error("  Context:", err.properties.context);
+            });
+        }
+        if (error.code === "ENOENT") {
             throw new Error("Word template file ('template.docx') not found in 'public/templates'.");
         }
-        throw new Error(`Failed to generate Word document: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(`Failed to generate Word document: ${error.message || String(error)}`);
     }
 }
 

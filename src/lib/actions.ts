@@ -78,18 +78,16 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const wordTemplateContent = await fs.readFile(wordTemplatePath);
         const zip = new PizZip(wordTemplateContent);
 
-        const imageOpts = {
-            centered: false,
-            fileType: "docx",
-            getImage: (tagValue: string) => {
+        const imageModule = new ImageModule({
+            getImage: function(tagValue: string) {
                 if (!tagValue) return null;
                 const base64 = tagValue.replace(/^data:image\/\w+;base64,/, "");
                 return Buffer.from(base64, "base64");
             },
-            getSize: () => [212, 283],
-        };
-
-        const imageModule = new ImageModule(imageOpts);
+            getSize: function() {
+                return [212, 283];
+            }
+        });
 
         const doc = new Docxtemplater(zip, {
             paragraphLoop: false,

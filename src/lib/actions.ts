@@ -92,7 +92,6 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const zip = new PizZip(wordTemplateContent);
         const doc = new Docxtemplater(zip, {
             modules: [imageModule],
-            paragraphLoop: true,
             nullGetter: () => "" // Return empty string for null/undefined values
         });
 

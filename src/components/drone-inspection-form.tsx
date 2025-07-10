@@ -2,9 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { InspectionFormData, BatteryFormData } from "@/lib/types";
+import type { InspectionFormData } from "@/lib/types";
 import { inspectionFormSchema, MAX_BATTERIES } from "@/lib/types";
 import { generateReport } from "@/lib/actions";
 
@@ -25,11 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
-const BatteryTable = ({ control }: { control: any }) => {
-    const { fields, append, remove } = useFieldArray({
-      control,
-      name: "batteries",
-    });
+const BatteryTable = ({ control, fields, append, remove }: { control: Control<InspectionFormData>, fields: any[], append: any, remove: any }) => {
   
     const addNewBattery = () => {
       if (fields.length < MAX_BATTERIES) {
@@ -67,24 +63,24 @@ const BatteryTable = ({ control }: { control: any }) => {
                         <TableRow key={field.id}>
                         <TableCell>
                             <FormField control={control} name={`batteries.${index}.name`} render={({ field }) => (
-                                <Input {...field} />
+                                <Input {...field} value={field.value ?? ""} />
                             )} />
                         </TableCell>
                         <TableCell>
                             <FormField control={control} name={`batteries.${index}.serialNumber`} render={({ field }) => (
-                                <Input {...field} />
+                                <Input {...field} value={field.value ?? ""} />
                             )} />
                         </TableCell>
                         {Array.from({ length: 13 }).map((_, cellIndex) => (
                             <TableCell key={cellIndex}>
                                 <FormField control={control} name={`batteries.${index}.cells.${cellIndex}`} render={({ field }) => (
-                                    <Input {...field} />
+                                    <Input {...field} value={field.value ?? ""} />
                                 )} />
                             </TableCell>
                         ))}
                         <TableCell>
                             <FormField control={control} name={`batteries.${index}.cycles`} render={({ field }) => (
-                                <Input {...field} />
+                                <Input {...field} value={field.value ?? ""} />
                             )} />
                         </TableCell>
                         <TableCell>
@@ -120,6 +116,7 @@ export function DroneInspectionForm() {
       reportName: "",
       serviceSheetName: "",
       droneName: "",
+      date: undefined,
       technician: "",
       supervisor: "",
       company: "",
@@ -157,11 +154,10 @@ export function DroneInspectionForm() {
         cycles: "", 
         cells: Array(13).fill("") 
       }, { shouldFocus: false });
-    } else if (!investigateBatteryHealth && fields.length > 0) {
-      // Clear all battery fields when switch is turned off
-      remove();
+    } else if (!investigateBatteryHealth) {
+      remove(); // remove all
     }
-  }, [investigateBatteryHealth, fields, append, remove]);
+  }, [investigateBatteryHealth]);
 
 
   async function onSubmit(data: InspectionFormData) {
@@ -365,7 +361,7 @@ export function DroneInspectionForm() {
             </CardHeader>
             {investigateBatteryHealth && (
                 <CardContent>
-                    <BatteryTable control={form.control} />
+                    <BatteryTable control={form.control} fields={fields} append={append} remove={remove} />
                 </CardContent>
             )}
         </Card>
@@ -384,3 +380,5 @@ export function DroneInspectionForm() {
     </Form>
   );
 }
+
+    

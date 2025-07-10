@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { InspectionFormData, BatteryFormData } from "@/lib/types";
@@ -143,6 +143,26 @@ export function DroneInspectionForm() {
     control: form.control,
     name: 'investigateBatteryHealth'
   });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "batteries",
+  });
+
+  useEffect(() => {
+    if (investigateBatteryHealth && fields.length === 0) {
+      append({ 
+        name: "", 
+        serialNumber: "", 
+        cycles: "", 
+        cells: Array(13).fill("") 
+      }, { shouldFocus: false });
+    } else if (!investigateBatteryHealth && fields.length > 0) {
+      // Clear all battery fields when switch is turned off
+      remove();
+    }
+  }, [investigateBatteryHealth, fields, append, remove]);
+
 
   async function onSubmit(data: InspectionFormData) {
     setIsSubmitting(true);

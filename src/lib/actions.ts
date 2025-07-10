@@ -19,7 +19,7 @@ const ImageModule = require("docxtemplater-image-module-free");
 
 const LOGIN_PASSWORD = "Thermal1"; 
 
-export async function login(password: string): Promise<{ success: boolean; message: string }> {
+export async function login(password: string): Promise<{ error: string } | void> {
   if (password === LOGIN_PASSWORD) {
     // Create the session
     const session = await encrypt({ user: { username: 'admin' }, expires: new Date(Date.now() + 24 * 60 * 60 * 1000) });
@@ -27,10 +27,11 @@ export async function login(password: string): Promise<{ success: boolean; messa
     // Save the session in a cookie
     cookies().set('session', session, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/' });
     
-    return { success: true, message: "Login successful" };
+    // Redirect to the homepage
+    redirect('/');
   }
   
-  return { success: false, message: "Invalid password" };
+  return { error: "Invalid password" };
 }
 
 

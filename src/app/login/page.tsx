@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { login } from '@/lib/actions';
-import { useRouter } from 'next/navigation';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,9 +21,9 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -35,26 +34,28 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginFormValues) {
     setIsSubmitting(true);
+    setError(null);
     try {
       const result = await login(data.password);
-
-      if (result.success) {
-        router.push('/');
-      } else {
+      if (result?.error) {
+        setError(result.error);
         toast({
           variant: "destructive",
           title: "Login Failed",
-          description: result.message,
+          description: result.error,
         });
       }
-    } catch (error) {
+    } catch (err) {
+       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+       setError(errorMessage);
        toast({
         variant: "destructive",
         title: "Login Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: errorMessage,
       });
+    } finally {
+        setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   }
 
   return (
@@ -80,6 +81,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+              {error && <p className="text-sm font-medium text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Continue

@@ -9,10 +9,30 @@ import ExcelJS from "exceljs";
 import { format } from "date-fns";
 import type { InspectionFormData } from "./types";
 import { MAX_IMAGES, MAX_BATTERIES } from "./types";
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { getSession, encrypt } from './auth';
 
 // Using require for docxtemplater-image-module-free as it's a CJS module
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ImageModule = require("docxtemplater-image-module-free");
+
+const LOGIN_PASSWORD = "Thermal1"; 
+
+export async function login(password: string): Promise<{ success: boolean; message: string }> {
+  if (password === LOGIN_PASSWORD) {
+    // Create the session
+    const session = await encrypt({ user: { username: 'admin' }, expires: new Date(Date.now() + 24 * 60 * 60 * 1000) });
+
+    // Save the session in a cookie
+    cookies().set('session', session, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/' });
+    
+    return { success: true, message: "Login successful" };
+  }
+  
+  return { success: false, message: "Invalid password" };
+}
+
 
 async function createOutputDirectory(timestamp: number): Promise<string> {
   const outputDir = path.join(process.cwd(), "public", "output", String(timestamp));
@@ -128,7 +148,7 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
 
         // Prepare battery data if the toggle is on
         if (data.investigateBatteryHealth && data.batteries) {
-            const cellPlaceholders: { [key: number]: string[] } = {
+             const cellPlaceholders: { [key: number]: string[] } = {
                 1: ["c11", "c12", "n13", "n14", "n15", "n16", "n17", "n18", "n19", "n110", "n111", "n112", "n113"],
                 2: ["c21", "c22", "c23", "c24", "c25", "c26", "c27", "c28", "c29", "c210", "c211", "c212", "c213"],
                 3: ["c31", "c32", "n33", "n34", "n35", "n36", "n37", "n38", "n39", "n310", "n311", "n312", "n313"],

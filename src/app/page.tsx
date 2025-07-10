@@ -1,6 +1,17 @@
-import { DroneInspectionForm } from '@/components/drone-inspection-form';
 
-export default function Home() {
+import { DroneInspectionForm } from '@/components/drone-inspection-form';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { verifyAuth } from '@/lib/auth';
+
+
+export default async function Home() {
+  const auth = await verifyAuth();
+
+  if (!auth.user) {
+    redirect('/login');
+  }
+
   return (
     <main className="container mx-auto p-4 py-8 md:p-12">
       <div className="mx-auto max-w-5xl">

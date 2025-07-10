@@ -157,7 +157,7 @@ export function DroneInspectionForm() {
     } else if (!investigateBatteryHealth) {
       remove(); // remove all
     }
-  }, [investigateBatteryHealth]);
+  }, [investigateBatteryHealth, fields.length, append, remove]);
 
 
   async function onSubmit(data: InspectionFormData) {
@@ -240,10 +240,10 @@ export function DroneInspectionForm() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <FormField control={form.control} name="reportName" render={({ field }) => (
-                    <FormItem><FormLabel>Report Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>TEMP S2500 Name - Serial</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="serviceSheetName" render={({ field }) => (
-                    <FormItem><FormLabel>Service Sheet Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>TEMP Name - Serial</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
             </CardContent>
         </Card>
@@ -380,5 +380,3 @@ export function DroneInspectionForm() {
     </Form>
   );
 }
-
-    

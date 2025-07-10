@@ -45,7 +45,15 @@ export default function LoginPage() {
           description: result.error,
         });
       }
-    } catch (err) {
+    } catch (err: any) {
+       // NEXT_REDIRECT is a special error thrown by Next.js for redirects.
+       // We don't want to treat it as a user-facing error.
+       if (err.digest?.startsWith('NEXT_REDIRECT')) {
+        // This is a successful redirect, so we don't do anything.
+        // The page will navigate away.
+        return;
+       }
+       
        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
        setError(errorMessage);
        toast({

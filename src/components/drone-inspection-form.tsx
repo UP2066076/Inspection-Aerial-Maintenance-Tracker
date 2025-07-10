@@ -2,16 +2,16 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { InspectionFormData } from "@/lib/types";
-import { inspectionFormSchema } from "@/lib/types";
+import type { InspectionFormData, BatteryFormData } from "@/lib/types";
+import { inspectionFormSchema, MAX_BATTERIES } from "@/lib/types";
 import { generateReport } from "@/lib/actions";
 
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Download, CheckCircle } from "lucide-react";
+import { CalendarIcon, Loader2, Download, CheckCircle, PlusCircle, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,6 +21,93 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ImageUploader } from "./image-uploader";
+import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
+const BatteryTable = ({ control }: { control: any }) => {
+    const { fields, append, remove } = useFieldArray({
+      control,
+      name: "batteries",
+    });
+  
+    const addNewBattery = () => {
+      if (fields.length < MAX_BATTERIES) {
+        append({ 
+            name: "", 
+            serialNumber: "", 
+            cycles: "",
+            cells: Array(13).fill("") 
+        });
+      }
+    };
+  
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Battery Health</CardTitle>
+          <CardDescription>Enter battery details below. You can add up to {MAX_BATTERIES} batteries.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <ScrollArea className="w-full whitespace-nowrap">
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead className="min-w-[150px]">Battery Name</TableHead>
+                        <TableHead className="min-w-[150px]">Serial Number</TableHead>
+                        {Array.from({ length: 13 }).map((_, i) => (
+                            <TableHead key={i} className="min-w-[70px]">Cell {i + 1}</TableHead>
+                        ))}
+                        <TableHead className="min-w-[70px]">Cycles</TableHead>
+                        <TableHead className="w-[50px]">Remove</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {fields.map((field, index) => (
+                        <TableRow key={field.id}>
+                        <TableCell>
+                            <FormField control={control} name={`batteries.${index}.name`} render={({ field }) => (
+                                <Input {...field} />
+                            )} />
+                        </TableCell>
+                        <TableCell>
+                            <FormField control={control} name={`batteries.${index}.serialNumber`} render={({ field }) => (
+                                <Input {...field} />
+                            )} />
+                        </TableCell>
+                        {Array.from({ length: 13 }).map((_, cellIndex) => (
+                            <TableCell key={cellIndex}>
+                                <FormField control={control} name={`batteries.${index}.cells.${cellIndex}`} render={({ field }) => (
+                                    <Input {...field} />
+                                )} />
+                            </TableCell>
+                        ))}
+                        <TableCell>
+                            <FormField control={control} name={`batteries.${index}.cycles`} render={({ field }) => (
+                                <Input {...field} />
+                            )} />
+                        </TableCell>
+                        <TableCell>
+                            <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          {fields.length < MAX_BATTERIES && (
+            <Button type="button" onClick={addNewBattery} className="mt-4">
+              <PlusCircle className="mr-2 h-4 w-4" /> Add another battery
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+};
+  
 
 export function DroneInspectionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,14 +134,27 @@ export function DroneInspectionForm() {
       calibrationNotes: "",
       additionalRepairsNotes: "",
       images: [],
+      investigateBatteryHealth: false,
+      batteries: [],
     },
+  });
+
+  const investigateBatteryHealth = useWatch({
+    control: form.control,
+    name: 'investigateBatteryHealth'
   });
 
   async function onSubmit(data: InspectionFormData) {
     setIsSubmitting(true);
     setDownloadInfo(null);
 
-    const result = await generateReport(data);
+    // Filter out batteries if the switch is off
+    const submissionData = {
+        ...data,
+        batteries: data.investigateBatteryHealth ? data.batteries : [],
+    };
+
+    const result = await generateReport(submissionData);
 
     if (result.success && result.downloadLinks) {
       toast({
@@ -222,7 +322,34 @@ export function DroneInspectionForm() {
                 )} />
             </CardContent>
         </Card>
-        
+
+        <Card>
+            <CardHeader>
+                <FormField
+                    control={form.control}
+                    name="investigateBatteryHealth"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel className="text-base">Investigate battery health?</FormLabel>
+                                <FormDescription>
+                                    Enable to add battery health details to the report.
+                                </FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                />
+            </CardHeader>
+            {investigateBatteryHealth && (
+                <CardContent>
+                    <BatteryTable control={form.control} />
+                </CardContent>
+            )}
+        </Card>
+
         <div className="flex justify-center">
             <Button 
                 type="submit" 

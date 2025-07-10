@@ -8,7 +8,7 @@ import Docxtemplater from "docxtemplater";
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
 import type { InspectionFormData } from "./types";
-import { MAX_IMAGES } from "./types";
+import { MAX_IMAGES, MAX_BATTERIES } from "./types";
 
 // Using require for docxtemplater-image-module-free as it's a CJS module
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -93,12 +93,13 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         const doc = new Docxtemplater(zip, {
             modules: [imageModule],
             paragraphLoop: true,
+            nullGetter: () => "" // Return empty string for null/undefined values
         });
 
         const templateData: Record<string, any> = {
           drone_name: data.droneName,
           title: data.droneName,
-          date: data.date ? format(new Date(data.date), "dd/MM/yy") : "N/A",
+          date: data.date ? format(new Date(data.date), "dd/MM/yy") : "",
           technician: data.technician,
           supervisor: data.supervisor,
           company: data.company,
@@ -116,12 +117,28 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
         };
 
         // Prepare image data by stripping the prefix
+        const transparentPlaceholder = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
         for (let i = 0; i < MAX_IMAGES; i++) {
             const image = data.images[i];
+            let base64 = transparentPlaceholder;
             if (image && image.startsWith("data:image")) {
-                const base64 = image.replace(/^data:image\/\w+;base64,/, "");
-                templateData[`image_${i + 1}`] = base64;
+                base64 = image.replace(/^data:image\/\w+;base64,/, "");
             }
+            templateData[`image_${i + 1}`] = base64;
+        }
+
+        // Prepare battery data if the toggle is on
+        if (data.investigateBatteryHealth && data.batteries) {
+            data.batteries.forEach((battery, i) => {
+                const rowNum = i + 1;
+                templateData[`n${rowNum}`] = battery.name || '';
+                templateData[`sn${rowNum}`] = battery.serialNumber || '';
+                templateData[`c${rowNum}`] = battery.cycles || '';
+                battery.cells?.forEach((cell, j) => {
+                    const cellNum = j + 1;
+                    templateData[`c${rowNum}${cellNum}`] = cell || '';
+                });
+            });
         }
         
         doc.setData(templateData);
@@ -156,7 +173,7 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
         }
 
         const cellMappings: { [key: string]: any } = {
-            'K2': data.date ? format(new Date(data.date), "yyyy-MM-dd") : "N/A",
+            'K2': data.date ? format(new Date(data.date), "yyyy-MM-dd") : "",
             'B2': data.company,
             'D2': data.manufacturer,
             'H2': data.aircraftType,
@@ -172,8 +189,30 @@ async function generateXlsx(data: InspectionFormData, templateDir: string): Prom
         };
 
         for (const cell in cellMappings) {
-            worksheet.getCell(cell).value = cellMappings[cell] || "N/A";
+            worksheet.getCell(cell).value = cellMappings[cell] || "";
         }
+
+        // Map battery data
+        if (data.investigateBatteryHealth && data.batteries) {
+            const startRow = 27;
+            const cellColumns = ['D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+            
+            data.batteries.forEach((battery, rowIndex) => {
+                if (rowIndex < MAX_BATTERIES) {
+                    const currentRow = startRow + rowIndex;
+                    worksheet.getCell(`B${currentRow}`).value = battery.name || "";
+                    worksheet.getCell(`C${currentRow}`).value = battery.serialNumber || "";
+                    worksheet.getCell(`Q${currentRow}`).value = battery.cycles || "";
+
+                    battery.cells?.forEach((cellValue, cellIndex) => {
+                        if (cellIndex < cellColumns.length) {
+                            worksheet.getCell(`${cellColumns[cellIndex]}${currentRow}`).value = cellValue || "";
+                        }
+                    });
+                }
+            });
+        }
+
 
         return await workbook.xlsx.writeBuffer() as Buffer;
     } catch (error) {

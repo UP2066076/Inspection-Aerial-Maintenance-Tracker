@@ -1,6 +1,15 @@
 import { z } from "zod";
 
 export const MAX_IMAGES = 6;
+export const MAX_BATTERIES = 8;
+const MAX_CELLS = 13;
+
+export const batterySchema = z.object({
+  name: z.string().optional(),
+  serialNumber: z.string().optional(),
+  cycles: z.string().optional(),
+  cells: z.array(z.string().optional()).length(MAX_CELLS).optional(),
+});
 
 export const inspectionFormSchema = z.object({
   reportName: z.string().min(1, "Report name is required"),
@@ -21,6 +30,9 @@ export const inspectionFormSchema = z.object({
   calibrationNotes: z.string().optional(),
   additionalRepairsNotes: z.string().optional(),
   images: z.array(z.string()).max(MAX_IMAGES).optional().default([]), // array of base64 data URLs
+  investigateBatteryHealth: z.boolean().default(false),
+  batteries: z.array(batterySchema).max(MAX_BATTERIES).optional(),
 });
 
 export type InspectionFormData = z.infer<typeof inspectionFormSchema>;
+export type BatteryFormData = z.infer<typeof batterySchema>;

@@ -128,15 +128,32 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
 
         // Prepare battery data if the toggle is on
         if (data.investigateBatteryHealth && data.batteries) {
+            const cellPlaceholders: { [key: number]: string[] } = {
+                1: ["c11", "c12", "n13", "n14", "n15", "n16", "n17", "n18", "n19", "n110", "n111", "n112", "n113"],
+                2: ["c21", "c22", "c23", "c24", "c25", "c26", "c27", "c28", "c29", "c210", "c211", "c212", "c213"],
+                3: ["c31", "c32", "n33", "n34", "n35", "n36", "n37", "n38", "n39", "n310", "n311", "n312", "n313"],
+                4: ["c41", "c42", "n43", "n44", "n45", "n46", "n47", "n48", "n49", "n410", "n411", "n412", "n413"],
+                5: ["c51", "c52", "n53", "n54", "n55", "n56", "n57", "n58", "n59", "n510", "n511", "n512", "n513"],
+                6: ["c61", "c62", "n63", "n64", "n65", "n66", "n67", "n68", "n69", "n610", "n611", "n612", "n613"],
+                7: ["c71", "c72", "n73", "n74", "n75", "n76", "n77", "n78", "n79", "n710", "n711", "n712", "n713"],
+                8: ["c81", "c82", "n83", "n84", "n85", "n86", "n87", "n88", "n89", "n810", "n811", "n812", "n813"],
+            };
+
             data.batteries.forEach((battery, i) => {
                 const rowNum = i + 1;
                 templateData[`n${rowNum}`] = battery.name || '';
                 templateData[`sn${rowNum}`] = battery.serialNumber || '';
                 templateData[`c${rowNum}`] = battery.cycles || '';
-                battery.cells?.forEach((cell, j) => {
-                    const cellNum = j + 1;
-                    templateData[`c${rowNum}${cellNum}`] = cell || '';
-                });
+                
+                const placeholdersForRow = cellPlaceholders[rowNum];
+                if (placeholdersForRow) {
+                    battery.cells?.forEach((cellValue, j) => {
+                        const placeholder = placeholdersForRow[j];
+                        if (placeholder) {
+                            templateData[placeholder] = cellValue || '';
+                        }
+                    });
+                }
             });
         }
         

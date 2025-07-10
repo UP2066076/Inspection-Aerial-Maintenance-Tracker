@@ -35,16 +35,23 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginFormValues) {
     setIsSubmitting(true);
-    const result = await login(data.password);
+    try {
+      const result = await login(data.password);
 
-    if (result.success) {
-      router.push('/');
-      router.refresh(); // Ensure the page reloads to check auth state
-    } else {
-      toast({
+      if (result.success) {
+        router.push('/');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: result.message,
+        });
+      }
+    } catch (error) {
+       toast({
         variant: "destructive",
-        title: "Login Failed",
-        description: result.message,
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again.",
       });
     }
     setIsSubmitting(false);

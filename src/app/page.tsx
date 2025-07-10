@@ -1,9 +1,9 @@
 
 import { DroneInspectionForm } from '@/components/drone-inspection-form';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyAuth } from '@/lib/auth';
 
+export const revalidate = 0;
 
 export default async function Home() {
   const auth = await verifyAuth();

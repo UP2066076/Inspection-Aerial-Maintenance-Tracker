@@ -17,7 +17,7 @@ export default async function Home() {
       <div className="mx-auto max-w-5xl">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight text-primary-foreground">
-            INSPECTION +
+            ired INSEPCTON +
           </h1>
           <p className="mt-3 text-lg text-muted-foreground">
             DRONE HEALTH CHECK

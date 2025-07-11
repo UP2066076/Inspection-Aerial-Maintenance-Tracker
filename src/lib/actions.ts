@@ -42,14 +42,12 @@ export async function generateReport(data: InspectionFormData): Promise<{
 
   try {
     const outputDir = path.join(process.cwd(), 'public', 'output');
+    
+    // Clean and recreate the output directory before generating new files
+    await fs.rm(outputDir, { recursive: true, force: true });
     await fs.mkdir(outputDir, { recursive: true });
 
-    // Clean the output directory before generating new files
-    const files = await fs.readdir(outputDir);
-    for (const file of files) {
-      await fs.unlink(path.join(outputDir, file));
-    }
-    console.log('Cleaned output directory.');
+    console.log('Cleaned and recreated output directory.');
 
     const wordFilename = `${data.reportName}.docx`;
     const excelFilename = `${data.serviceSheetName}.xlsx`;

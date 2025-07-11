@@ -123,9 +123,9 @@ export function ImageUploader({ value = [], onChange }: { value: string[]; onCha
       className={cn('border-2 border-dashed', isDragging ? 'border-primary' : 'border-input')}
     >
       <CardContent className="p-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
           {Array.from({ length: MAX_IMAGES }).map((_, index) => (
-            <div key={index} className="aspect-[3/4] relative bg-muted/20 rounded-md">
+            <div key={index} className="relative aspect-[3/4] rounded-md bg-muted/20">
               {value[index] ? (
                 <>
                   <Image src={value[index]} alt={`Upload preview ${index + 1}`} layout="fill" className="rounded-md object-contain" />
@@ -133,7 +133,7 @@ export function ImageUploader({ value = [], onChange }: { value: string[]; onCha
                     type="button"
                     variant="destructive"
                     size="icon"
-                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                    className="absolute -right-2 -top-2 h-6 w-6 rounded-full"
                     onClick={() => removeImage(index)}
                   >
                     <X className="h-4 w-4" />
@@ -142,10 +142,10 @@ export function ImageUploader({ value = [], onChange }: { value: string[]; onCha
               ) : (
                 <label
                   htmlFor="image-upload"
-                  className="flex flex-col items-center justify-center w-full h-full rounded-md bg-muted/50 cursor-pointer hover:bg-muted"
+                  className="flex h-full w-full cursor-pointer flex-col items-center justify-center rounded-md bg-muted/50 hover:bg-muted"
                 >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                    <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
+                    <UploadCloud className="mb-2 h-8 w-8 text-muted-foreground" />
                     <p className="mb-1 text-xs text-muted-foreground">Slot {index + 1}</p>
                   </div>
                 </label>
@@ -163,7 +163,7 @@ export function ImageUploader({ value = [], onChange }: { value: string[]; onCha
           disabled={value.length >= MAX_IMAGES}
         />
         {value.length < MAX_IMAGES && (
-          <div className="text-center mt-4">
+          <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">Drag & drop images here or click on a slot to select files.</p>
             <p className="text-xs text-muted-foreground">Up to {MAX_IMAGES - value.length} remaining.</p>
           </div>

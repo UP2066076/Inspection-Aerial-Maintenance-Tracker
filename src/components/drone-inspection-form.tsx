@@ -50,9 +50,7 @@ const BatteryTable = ({
     <Card>
       <CardHeader>
         <CardTitle>Battery Health</CardTitle>
-        <CardDescription>
-          Enter battery details below. You can add up to {MAX_BATTERIES} batteries.
-        </CardDescription>
+        <CardDescription>Enter battery details below. You can add up to {MAX_BATTERIES} batteries.</CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="w-full whitespace-nowrap">
@@ -231,9 +229,9 @@ export function DroneInspectionForm() {
 
   if (downloadInfo) {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="mx-auto w-full max-w-2xl">
         <CardHeader className="text-center">
-          <CheckCircle className="w-16 h-16 mx-auto text-green-500" />
+          <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
           <CardTitle className="text-2xl">Reports Generated!</CardTitle>
           <CardDescription>Your documents are ready for download.</CardDescription>
         </CardHeader>
@@ -266,7 +264,7 @@ export function DroneInspectionForm() {
             <CardTitle>File Details</CardTitle>
             <CardDescription>Enter the names for your generated report files.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
               name="reportName"
@@ -301,7 +299,7 @@ export function DroneInspectionForm() {
             <CardTitle>Inspection Details</CardTitle>
             <CardDescription>Enter the general details for this inspection.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
               name="droneName"
@@ -375,7 +373,7 @@ export function DroneInspectionForm() {
             <CardTitle>Aircraft Information</CardTitle>
             <CardDescription>Details about the aircraft being inspected.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
               name="company"
@@ -449,7 +447,7 @@ export function DroneInspectionForm() {
             <CardTitle>Inspection Notes</CardTitle>
             <CardDescription>Provide detailed notes for each inspection category.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {noteFields.map((fieldName) => (
               <FormField
                 key={fieldName}
@@ -459,7 +457,7 @@ export function DroneInspectionForm() {
                   <FormItem className="md:col-span-2">
                     <FormLabel>{fieldName.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}</FormLabel>
                     <FormControl>
-                      <Textarea className="resize-y min-h-[100px]" {...field} />
+                      <Textarea className="min-h-[100px] resize-y" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -520,7 +518,7 @@ export function DroneInspectionForm() {
             type="submit"
             disabled={isSubmitting}
             size="lg"
-            className="font-semibold text-lg px-8 py-6 text-white bg-gradient-to-r from-[#E0312D] to-[#F26322] hover:opacity-90 transition-opacity"
+            className="from-[#E0312D] to-[#F26322] bg-gradient-to-r px-8 py-6 text-lg font-semibold text-white transition-opacity hover:opacity-90"
           >
             {isSubmitting ? (
               <>

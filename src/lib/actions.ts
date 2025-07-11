@@ -128,7 +128,8 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
     };
 
     // Prepare image data by stripping the prefix
-    const transparentPlaceholder = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    const transparentPlaceholder =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
     for (let i = 0; i < MAX_IMAGES; i++) {
       const image = data.images[i];
       let base64 = transparentPlaceholder;

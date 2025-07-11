@@ -15,10 +15,8 @@ export default async function Home() {
   return (
     <main className="container mx-auto p-4 py-8 md:p-12">
       <div className="mx-auto max-w-5xl">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight text-primary-foreground">
-            ired INSEPCTON +
-          </h1>
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl font-bold tracking-tight text-primary-foreground md:text-5xl font-headline">ired INSEPCTON +</h1>
           <p className="mt-3 text-lg text-muted-foreground">DRONE HEALTH CHECK</p>
         </div>
         <DroneInspectionForm />

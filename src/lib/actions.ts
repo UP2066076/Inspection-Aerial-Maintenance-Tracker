@@ -10,7 +10,7 @@ import type { InspectionFormData } from './types';
 import { MAX_IMAGES, MAX_BATTERIES } from './types';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getSession, encrypt } from './auth';
+import { encrypt } from './auth';
 
 // Using require for docxtemplater-image-module-free as it's a CJS module
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -31,6 +31,21 @@ export async function login(password: string): Promise<{ error: string } | void>
   }
 
   return { error: 'Invalid password' };
+}
+
+async function getTemplatePath(templateName: string): Promise<string> {
+  // In a Vercel environment, the `public` folder is at the root of the project.
+  // In local dev, `process.cwd()` gives the project root.
+  const basePath = process.cwd();
+  const templatePath = path.join(basePath, 'public', 'templates', templateName);
+
+  try {
+    await fs.access(templatePath);
+    return templatePath;
+  } catch (error) {
+    console.error(`Template not found at ${templatePath}`);
+    throw new Error(`Template file '${templateName}' not found in 'public/templates'.`);
+  }
 }
 
 export async function generateReport(data: InspectionFormData): Promise<{
@@ -70,7 +85,7 @@ export async function generateReport(data: InspectionFormData): Promise<{
 
 async function generateDocx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const wordTemplatePath = path.join(process.cwd(), 'src', 'lib', 'templates', 'template.docx');
+    const wordTemplatePath = await getTemplatePath('template.docx');
     const wordTemplateContent = await fs.readFile(wordTemplatePath);
 
     const imageModule = new ImageModule({
@@ -169,16 +184,13 @@ async function generateDocx(data: InspectionFormData): Promise<Buffer> {
         console.error('  Context:', err.properties.context);
       });
     }
-    if (error.code === 'ENOENT') {
-      throw new Error("Word template file ('template.docx') not found in `src/lib/templates`.");
-    }
     throw new Error(`Failed to generate Word document: ${error.message || String(error)}`);
   }
 }
 
 async function generateXlsx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const excelTemplatePath = path.join(process.cwd(), 'src', 'lib', 'templates', 'template.xlsx');
+    const excelTemplatePath = await getTemplatePath('template.xlsx');
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(excelTemplatePath);
 
@@ -230,9 +242,6 @@ async function generateXlsx(data: InspectionFormData): Promise<Buffer> {
 
     return (await workbook.xlsx.writeBuffer()) as Buffer;
   } catch (error) {
-    if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new Error("Excel template file ('template.xlsx') not found in `src/lib/templates`.");
-    }
     throw new Error(`Failed to generate Excel document: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

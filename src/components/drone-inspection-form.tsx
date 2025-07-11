@@ -497,18 +497,18 @@ export function DroneInspectionForm() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-              <div className="flex flex-col space-y-2">
+            <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-2">
+              <div className="flex h-full flex-col space-y-2">
                 <FormLabel>Camera Capture</FormLabel>
                 <CameraCapture onCapture={handleImageCapture} disabled={(images?.length ?? 0) >= MAX_IMAGES} />
               </div>
-              <div className="flex flex-col space-y-2">
+              <div className="flex h-full flex-col space-y-2">
                 <FormLabel>Image Upload & Preview</FormLabel>
                 <FormField
                   control={form.control}
                   name="images"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex-grow">
                       <FormControl>
                         <ImageUploader value={field.value || []} onChange={field.onChange} />
                       </FormControl>

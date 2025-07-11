@@ -8,6 +8,7 @@ import { inspectionFormSchema, MAX_BATTERIES, MAX_IMAGES } from '@/lib/types';
 import { generateReport } from '@/lib/actions';
 
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { CalendarIcon, Loader2, Download, CheckCircle, PlusCircle, Trash2 } from 'lucide-react';
@@ -132,6 +133,7 @@ export function DroneInspectionForm() {
     serviceSheetName: string;
   } | null>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const form = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionFormSchema),
@@ -493,16 +495,20 @@ export function DroneInspectionForm() {
           <CardHeader>
             <CardTitle>Photo Evidence</CardTitle>
             <CardDescription>
-              Take photos with your device camera or upload files. Up to {MAX_IMAGES} images (PNG, JPG) are supported.
+              {isMobile
+                ? `Take photos with your device camera or upload files. Up to ${MAX_IMAGES} images (PNG, JPG) are supported.`
+                : `Upload files to add photo evidence. Up to ${MAX_IMAGES} images (PNG, JPG) are supported.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-2">
-              <div className="flex h-full flex-col space-y-2">
-                <FormLabel>Camera Capture</FormLabel>
-                <CameraCapture onCapture={handleImageCapture} disabled={(images?.length ?? 0) >= MAX_IMAGES} />
-              </div>
-              <div className="flex h-full flex-col space-y-2">
+            <div className={cn('grid grid-cols-1 items-start gap-8', isMobile && 'md:grid-cols-2')}>
+              {isMobile && (
+                <div className="flex h-full flex-col space-y-2">
+                  <FormLabel>Camera Capture</FormLabel>
+                  <CameraCapture onCapture={handleImageCapture} disabled={(images?.length ?? 0) >= MAX_IMAGES} />
+                </div>
+              )}
+              <div className={cn('flex h-full flex-col space-y-2', isMobile && 'md:col-start-2 md:row-start-1')}>
                 <FormLabel>Image Upload & Preview</FormLabel>
                 <FormField
                   control={form.control}

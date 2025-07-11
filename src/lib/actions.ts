@@ -54,11 +54,8 @@ export async function generateReport(data: InspectionFormData): Promise<{
 }> {
   console.log('Received data for report generation.');
 
-  // Use a temporary directory for file generation, compatible with serverless environments
-  const tempDir = path.join('/tmp');
-
   try {
-    // Generate file buffers in memory first
+    // Generate file buffers in memory
     const [docxBuffer, xlsxBuffer] = await Promise.all([generateDocx(data), generateXlsx(data)]);
     console.log('Successfully generated DOCX and XLSX buffers in memory.');
 

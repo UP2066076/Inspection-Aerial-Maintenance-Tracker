@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -7,15 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { login } from '@/lib/actions';
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
-  password: z.string().min(1, { message: "Password is required" }),
+  password: z.string().min(1, { message: 'Password is required' }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -28,7 +27,7 @@ export default function LoginPage() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      password: "",
+      password: '',
     },
   });
 
@@ -40,29 +39,29 @@ export default function LoginPage() {
       if (result?.error) {
         setError(result.error);
         toast({
-          variant: "destructive",
-          title: "Login Failed",
+          variant: 'destructive',
+          title: 'Login Failed',
           description: result.error,
         });
       }
     } catch (err: any) {
-       // NEXT_REDIRECT is a special error thrown by Next.js for redirects.
-       // We don't want to treat it as a user-facing error.
-       if (err.digest?.startsWith('NEXT_REDIRECT')) {
+      // NEXT_REDIRECT is a special error thrown by Next.js for redirects.
+      // We don't want to treat it as a user-facing error.
+      if (err.digest?.startsWith('NEXT_REDIRECT')) {
         // This is a successful redirect, so we don't do anything.
         // The page will navigate away.
         return;
-       }
-       
-       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-       setError(errorMessage);
-       toast({
-        variant: "destructive",
-        title: "Login Error",
+      }
+
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setError(errorMessage);
+      toast({
+        variant: 'destructive',
+        title: 'Login Error',
         description: errorMessage,
       });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   }
 

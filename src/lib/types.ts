@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const MAX_IMAGES = 6;
 export const MAX_BATTERIES = 8;
@@ -12,10 +12,10 @@ export const batterySchema = z.object({
 });
 
 export const inspectionFormSchema = z.object({
-  reportName: z.string().min(1, "Report name is required"),
-  serviceSheetName: z.string().min(1, "Service sheet name is required"),
-  droneName: z.string().min(1, "Drone name is required"),
-  date: z.date({ required_error: "A date is required." }),
+  reportName: z.string().min(1, 'Report name is required'),
+  serviceSheetName: z.string().min(1, 'Service sheet name is required'),
+  droneName: z.string().min(1, 'Drone name is required'),
+  date: z.date({ required_error: 'A date is required.' }),
   technician: z.string().optional(),
   supervisor: z.string().optional(),
   company: z.string().optional(),

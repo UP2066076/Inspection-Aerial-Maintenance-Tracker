@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import { useState, useCallback, ChangeEvent, DragEvent } from 'react';
 import { useFormField } from '@/components/ui/form';
@@ -17,7 +16,7 @@ const resizeImage = (file: File): Promise<string> => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
-      if (!event.target?.result) return reject(new Error("Could not read file."));
+      if (!event.target?.result) return reject(new Error('Could not read file.'));
       const img = document.createElement('img');
       img.src = event.target.result as string;
       img.onload = () => {
@@ -34,7 +33,7 @@ const resizeImage = (file: File): Promise<string> => {
         canvas.height = maxHeight;
 
         const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error("Could not get canvas context."));
+        if (!ctx) return reject(new Error('Could not get canvas context.'));
 
         // Fill the background with white
         ctx.fillStyle = 'white';
@@ -52,28 +51,34 @@ const resizeImage = (file: File): Promise<string> => {
   });
 };
 
-
-export function ImageUploader({ value = [], onChange }: { value: string[], onChange: (value: string[]) => void }) {
+export function ImageUploader({ value = [], onChange }: { value: string[]; onChange: (value: string[]) => void }) {
   const { toast } = useToast();
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleFiles = useCallback(async (files: FileList | null) => {
-    if (!files) return;
+  const handleFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files) return;
 
-    const acceptedFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-    if (acceptedFiles.length !== files.length) {
-      toast({ variant: 'destructive', title: 'Invalid file type', description: 'Please upload only PNG or JPG images.' });
-    }
+      const acceptedFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+      if (acceptedFiles.length !== files.length) {
+        toast({ variant: 'destructive', title: 'Invalid file type', description: 'Please upload only PNG or JPG images.' });
+      }
 
-    const filesToProcess = acceptedFiles.slice(0, MAX_IMAGES - value.length);
+      const filesToProcess = acceptedFiles.slice(0, MAX_IMAGES - value.length);
 
-    if (value.length + acceptedFiles.length > MAX_IMAGES) {
-       toast({ variant: 'destructive', title: 'Image limit reached', description: `You can only upload a maximum of ${MAX_IMAGES} images.` });
-    }
+      if (value.length + acceptedFiles.length > MAX_IMAGES) {
+        toast({
+          variant: 'destructive',
+          title: 'Image limit reached',
+          description: `You can only upload a maximum of ${MAX_IMAGES} images.`,
+        });
+      }
 
-    const resizedImages = await Promise.all(filesToProcess.map(resizeImage));
-    onChange([...value, ...resizedImages]);
-  }, [value, onChange, toast]);
+      const resizedImages = await Promise.all(filesToProcess.map(resizeImage));
+      onChange([...value, ...resizedImages]);
+    },
+    [value, onChange, toast]
+  );
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -98,7 +103,7 @@ export function ImageUploader({ value = [], onChange }: { value: string[], onCha
     setIsDragging(false);
     handleFiles(e.dataTransfer.files);
   };
-  
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     handleFiles(e.target.files);
   };
@@ -110,12 +115,12 @@ export function ImageUploader({ value = [], onChange }: { value: string[], onCha
   };
 
   return (
-    <Card 
+    <Card
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
-      className={cn("border-2 border-dashed", isDragging ? 'border-primary' : 'border-input')}
+      className={cn('border-2 border-dashed', isDragging ? 'border-primary' : 'border-input')}
     >
       <CardContent className="p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
@@ -135,24 +140,33 @@ export function ImageUploader({ value = [], onChange }: { value: string[], onCha
                   </Button>
                 </>
               ) : (
-                <label htmlFor="image-upload" className="flex flex-col items-center justify-center w-full h-full rounded-md bg-muted/50 cursor-pointer hover:bg-muted">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                        <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
-                        <p className="mb-1 text-xs text-muted-foreground">
-                            Slot {index + 1}
-                        </p>
-                    </div>
+                <label
+                  htmlFor="image-upload"
+                  className="flex flex-col items-center justify-center w-full h-full rounded-md bg-muted/50 cursor-pointer hover:bg-muted"
+                >
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                    <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
+                    <p className="mb-1 text-xs text-muted-foreground">Slot {index + 1}</p>
+                  </div>
                 </label>
               )}
             </div>
           ))}
         </div>
-        <Input id="image-upload" type="file" className="hidden" multiple accept="image/png, image/jpeg" onChange={handleInputChange} disabled={value.length >= MAX_IMAGES} />
+        <Input
+          id="image-upload"
+          type="file"
+          className="hidden"
+          multiple
+          accept="image/png, image/jpeg"
+          onChange={handleInputChange}
+          disabled={value.length >= MAX_IMAGES}
+        />
         {value.length < MAX_IMAGES && (
-            <div className="text-center mt-4">
-                <p className="text-sm text-muted-foreground">Drag & drop images here or click on a slot to select files.</p>
-                <p className="text-xs text-muted-foreground">Up to {MAX_IMAGES - value.length} remaining.</p>
-            </div>
+          <div className="text-center mt-4">
+            <p className="text-sm text-muted-foreground">Drag & drop images here or click on a slot to select files.</p>
+            <p className="text-xs text-muted-foreground">Up to {MAX_IMAGES - value.length} remaining.</p>
+          </div>
         )}
       </CardContent>
     </Card>

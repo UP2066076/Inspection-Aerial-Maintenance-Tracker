@@ -19,9 +19,7 @@ export default async function Home() {
           <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight text-primary-foreground">
             ired INSEPCTON +
           </h1>
-          <p className="mt-3 text-lg text-muted-foreground">
-            DRONE HEALTH CHECK
-          </p>
+          <p className="mt-3 text-lg text-muted-foreground">DRONE HEALTH CHECK</p>
         </div>
         <DroneInspectionForm />
       </div>

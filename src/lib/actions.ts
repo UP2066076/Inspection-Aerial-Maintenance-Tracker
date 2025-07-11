@@ -34,17 +34,16 @@ export async function login(password: string): Promise<{ error: string } | void>
 }
 
 async function getTemplatePath(templateName: string): Promise<string> {
-  // In a Vercel environment, the `public` folder is at the root of the project.
-  // In local dev, `process.cwd()` gives the project root.
-  const basePath = process.cwd();
-  const templatePath = path.join(basePath, 'public', 'templates', templateName);
+  // Use path.resolve to get a reliable path to the templates directory
+  // This works in both local dev and serverless environments (Vercel, etc.)
+  const templatePath = path.resolve(process.cwd(), 'src', 'lib', 'templates', templateName);
 
   try {
     await fs.access(templatePath);
     return templatePath;
   } catch (error) {
     console.error(`Template not found at ${templatePath}`);
-    throw new Error(`Template file '${templateName}' not found in 'public/templates'.`);
+    throw new Error(`Template file '${templateName}' not found in 'src/lib/templates'.`);
   }
 }
 
@@ -55,12 +54,15 @@ export async function generateReport(data: InspectionFormData): Promise<{
 }> {
   console.log('Received data for report generation.');
 
+  // Use a temporary directory for file generation, compatible with serverless environments
+  const tempDir = path.join('/tmp');
+
   try {
-    // Generate file buffers in memory
+    // Generate file buffers in memory first
     const [docxBuffer, xlsxBuffer] = await Promise.all([generateDocx(data), generateXlsx(data)]);
     console.log('Successfully generated DOCX and XLSX buffers in memory.');
 
-    // Convert buffers to base64 data URLs
+    // Convert buffers to base64 data URLs for client-side download
     const wordUrl = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString('base64')}`;
     const excelUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${xlsxBuffer.toString('base64')}`;
     console.log('Successfully created base64 data URLs.');

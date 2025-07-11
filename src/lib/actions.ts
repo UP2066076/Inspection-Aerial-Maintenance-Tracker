@@ -70,7 +70,7 @@ export async function generateReport(data: InspectionFormData): Promise<{
 
 async function generateDocx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const wordTemplatePath = path.join(process.cwd(), 'public', 'templates', 'template.docx');
+    const wordTemplatePath = path.join(process.cwd(), 'src', 'lib', 'templates', 'template.docx');
     const wordTemplateContent = await fs.readFile(wordTemplatePath);
 
     const imageModule = new ImageModule({
@@ -170,7 +170,7 @@ async function generateDocx(data: InspectionFormData): Promise<Buffer> {
       });
     }
     if (error.code === 'ENOENT') {
-      throw new Error("Word template file ('template.docx') not found in 'public/templates'.");
+      throw new Error("Word template file ('template.docx') not found in `src/lib/templates`.");
     }
     throw new Error(`Failed to generate Word document: ${error.message || String(error)}`);
   }
@@ -178,7 +178,7 @@ async function generateDocx(data: InspectionFormData): Promise<Buffer> {
 
 async function generateXlsx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const excelTemplatePath = path.join(process.cwd(), 'public', 'templates', 'template.xlsx');
+    const excelTemplatePath = path.join(process.cwd(), 'src', 'lib', 'templates', 'template.xlsx');
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(excelTemplatePath);
 
@@ -231,7 +231,7 @@ async function generateXlsx(data: InspectionFormData): Promise<Buffer> {
     return (await workbook.xlsx.writeBuffer()) as Buffer;
   } catch (error) {
     if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new Error("Excel template file ('template.xlsx') not found in 'public/templates'.");
+      throw new Error("Excel template file ('template.xlsx') not found in `src/lib/templates`.");
     }
     throw new Error(`Failed to generate Excel document: ${error instanceof Error ? error.message : String(error)}`);
   }

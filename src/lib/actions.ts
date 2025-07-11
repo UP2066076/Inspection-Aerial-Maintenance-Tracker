@@ -41,35 +41,18 @@ export async function generateReport(data: InspectionFormData): Promise<{
   console.log('Received data for report generation.');
 
   try {
-    const outputDir = path.join(process.cwd(), 'public', 'output');
-    
-    // Clean and recreate the output directory before generating new files
-    await fs.rm(outputDir, { recursive: true, force: true });
-    await fs.mkdir(outputDir, { recursive: true });
-
-    console.log('Cleaned and recreated output directory.');
-
-    const wordFilename = `${data.reportName}.docx`;
-    const excelFilename = `${data.serviceSheetName}.xlsx`;
-
-    const wordOutputPath = path.join(outputDir, wordFilename);
-    const excelOutputPath = path.join(outputDir, excelFilename);
-
-    // --- Generate and Save Files ---
+    // Generate file buffers in memory
     const [docxBuffer, xlsxBuffer] = await Promise.all([generateDocx(data), generateXlsx(data)]);
-    console.log('Successfully generated DOCX and XLSX buffers.');
+    console.log('Successfully generated DOCX and XLSX buffers in memory.');
 
-    await Promise.all([fs.writeFile(wordOutputPath, docxBuffer), fs.writeFile(excelOutputPath, xlsxBuffer)]);
-    console.log('Successfully saved files to disk.');
-
-    // --- Create Public URLs for Download ---
-    const wordUrl = `/output/${encodeURIComponent(wordFilename)}`;
-    const excelUrl = `/output/${encodeURIComponent(excelFilename)}`;
-    console.log(`Generated download URLs: ${wordUrl}, ${excelUrl}`);
+    // Convert buffers to base64 data URLs
+    const wordUrl = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString('base64')}`;
+    const excelUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${xlsxBuffer.toString('base64')}`;
+    console.log('Successfully created base64 data URLs.');
 
     return {
       success: true,
-      message: 'Reports generated and saved successfully!',
+      message: 'Reports generated successfully!',
       downloadLinks: {
         wordUrl,
         excelUrl,

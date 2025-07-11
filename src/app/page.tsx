@@ -1,4 +1,4 @@
-
+// Main application page.
 import { DroneInspectionForm } from '@/components/drone-inspection-form';
 import { redirect } from 'next/navigation';
 import { verifyAuth } from '@/lib/auth';

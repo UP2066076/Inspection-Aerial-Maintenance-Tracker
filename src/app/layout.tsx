@@ -1,3 +1,4 @@
+// Root layout for the Next.js application.
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";

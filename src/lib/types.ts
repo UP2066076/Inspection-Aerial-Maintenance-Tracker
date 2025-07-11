@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const MAX_IMAGES = 6;
-export const MAX_BATTERIES = 8;
+export const MAX_BATTERIES = 10;
 const MAX_CELLS = 13;
 
 export const batterySchema = z.object({

@@ -142,23 +142,27 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
     // Prepare battery data if the toggle is on
     if (data.investigateBatteryHealth && data.batteries) {
       const cellPlaceholders: { [key: number]: string[] } = {
-        1: ['c11', 'c12', 'n13', 'n14', 'n15', 'n16', 'n17', 'n18', 'n19', 'n110', 'n111', 'n112', 'n113'],
+        1: ['c11', 'c12', 'c13', 'c14', 'c15', 'c16', 'c17', 'c18', 'c19', 'c110', 'c111', 'c112', 'c113'],
         2: ['c21', 'c22', 'c23', 'c24', 'c25', 'c26', 'c27', 'c28', 'c29', 'c210', 'c211', 'c212', 'c213'],
-        3: ['c31', 'c32', 'n33', 'n34', 'n35', 'n36', 'n37', 'n38', 'n39', 'n310', 'n311', 'n312', 'n313'],
-        4: ['c41', 'c42', 'n43', 'n44', 'n45', 'n46', 'n47', 'n48', 'n49', 'n410', 'n411', 'n412', 'n413'],
-        5: ['c51', 'c52', 'n53', 'n54', 'n55', 'n56', 'n57', 'n58', 'n59', 'n510', 'n511', 'n512', 'n513'],
-        6: ['c61', 'c62', 'n63', 'n64', 'n65', 'n66', 'n67', 'n68', 'n69', 'n610', 'n611', 'n612', 'n613'],
-        7: ['c71', 'c72', 'n73', 'n74', 'n75', 'n76', 'n77', 'n78', 'n79', 'n710', 'n711', 'n712', 'n713'],
-        8: ['c81', 'c82', 'n83', 'n84', 'n85', 'n86', 'n87', 'n88', 'n89', 'n810', 'n811', 'n812', 'n813'],
+        3: ['c31', 'c32', 'c33', 'c34', 'c35', 'c36', 'c37', 'c38', 'c39', 'c310', 'c311', 'c312', 'c313'],
+        4: ['c41', 'c42', 'c43', 'c44', 'c45', 'c46', 'c47', 'c48', 'c49', 'c410', 'c411', 'c412', 'c413'],
+        5: ['c51', 'c52', 'c53', 'c54', 'c55', 'c56', 'c57', 'c58', 'c59', 'c510', 'c511', 'c512', 'c513'],
+        6: ['c61', 'c62', 'c63', 'c64', 'c65', 'c66', 'c67', 'c68', 'c69', 'c610', 'c611', 'c612', 'c613'],
+        7: ['c71', 'c72', 'c73', 'c74', 'c75', 'c76', 'c77', 'c78', 'c79', 'c710', 'c711', 'c712', 'c713'],
+        8: ['c81', 'c82', 'c83', 'c84', 'c85', 'c86', 'c87', 'c88', 'c89', 'c810', 'c811', 'c812', 'c813'],
+        9: ['c91', 'c92', 'c93', 'c94', 'c95', 'c96', 'c97', 'c98', 'c99', 'c910', 'c911', 'c912', 'c913'],
+        10: ['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08', 'c09', 'c010', 'c011', 'c012', 'c013'],
       };
 
       data.batteries.forEach((battery, i) => {
-        const rowNum = i + 1;
+        // 10th battery uses 0-based index in template
+        const rowNum = i === 9 ? 0 : i + 1;
         templateData[`n${rowNum}`] = battery.name || '';
         templateData[`sn${rowNum}`] = battery.serialNumber || '';
         templateData[`c${rowNum}`] = battery.cycles || '';
 
-        const placeholdersForRow = cellPlaceholders[rowNum];
+        // Template uses 1-based index for placeholder map key
+        const placeholdersForRow = cellPlaceholders[i + 1];
         if (placeholdersForRow) {
           battery.cells?.forEach((cellValue, j) => {
             const placeholder = placeholdersForRow[j];

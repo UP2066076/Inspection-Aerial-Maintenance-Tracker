@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray, useWatch, Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { InspectionFormData } from '@/lib/types';
-import { inspectionFormSchema, MAX_BATTERIES } from '@/lib/types';
+import { inspectionFormSchema, MAX_BATTERIES, MAX_IMAGES } from '@/lib/types';
 import { generateReport } from '@/lib/actions';
 
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ImageUploader } from './image-uploader';
+import { CameraCapture } from './camera-capture';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -163,6 +164,11 @@ export function DroneInspectionForm() {
     name: 'investigateBatteryHealth',
   });
 
+  const images = useWatch({
+    control: form.control,
+    name: 'images',
+  });
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'batteries',
@@ -226,6 +232,22 @@ export function DroneInspectionForm() {
     'calibrationNotes',
     'additionalRepairsNotes',
   ];
+
+  const handleImageCapture = (imageDataUrl: string) => {
+    const currentImages = form.getValues('images') || [];
+    if (currentImages.length < MAX_IMAGES) {
+      form.setValue('images', [...currentImages, imageDataUrl], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Image limit reached',
+        description: `You cannot add more than ${MAX_IMAGES} images.`,
+      });
+    }
+  };
 
   if (downloadInfo) {
     return (
@@ -469,22 +491,33 @@ export function DroneInspectionForm() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Image Upload</CardTitle>
-            <CardDescription>Upload up to 6 images (PNG, JPG). Images will be resized to 212x283px.</CardDescription>
+            <CardTitle>Photo Evidence</CardTitle>
+            <CardDescription>
+              Take photos with your device camera or upload files. Up to {MAX_IMAGES} images (PNG, JPG) are supported.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <FormField
-              control={form.control}
-              name="images"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <ImageUploader value={field.value || []} onChange={field.onChange} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+              <div className="flex flex-col space-y-2">
+                <FormLabel>Camera Capture</FormLabel>
+                <CameraCapture onCapture={handleImageCapture} disabled={(images?.length ?? 0) >= MAX_IMAGES} />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <FormLabel>Image Upload & Preview</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="images"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <ImageUploader value={field.value || []} onChange={field.onChange} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 

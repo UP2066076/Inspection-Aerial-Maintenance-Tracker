@@ -33,17 +33,6 @@ export async function login(password: string): Promise<{ error: string } | void>
   return { error: 'Invalid password' };
 }
 
-async function createOutputDirectory(timestamp: number): Promise<string> {
-  const outputDir = path.join(process.cwd(), 'public', 'output', String(timestamp));
-  try {
-    await fs.mkdir(outputDir, { recursive: true });
-    return outputDir;
-  } catch (error) {
-    console.error('Failed to create output directory:', error);
-    throw new Error('Could not create server directory for reports.');
-  }
-}
-
 export async function generateReport(data: InspectionFormData): Promise<{
   success: boolean;
   message: string;
@@ -52,27 +41,24 @@ export async function generateReport(data: InspectionFormData): Promise<{
   console.log('Received data for report generation.');
 
   try {
-    const timestamp = Date.now();
     const templateDir = path.resolve(process.cwd(), 'public/templates');
-    const outputDir = await createOutputDirectory(timestamp);
-    const outputPath = `/output/${timestamp}`;
 
-    // --- Generate Documents and Save to Disk ---
+    // --- Generate Document Buffers in Memory ---
     const [docxBuffer, xlsxBuffer] = await Promise.all([generateDocx(data, templateDir), generateXlsx(data, templateDir)]);
     console.log('Successfully generated DOCX and XLSX buffers.');
 
-    const wordOutputPath = path.join(outputDir, `${data.reportName}.docx`);
-    const excelOutputPath = path.join(outputDir, `${data.serviceSheetName}.xlsx`);
+    // --- Convert buffers to base64 data URLs ---
+    const wordUrl = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString('base64')}`;
+    const excelUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${xlsxBuffer.toString('base64')}`;
 
-    await Promise.all([fs.writeFile(wordOutputPath, docxBuffer), fs.writeFile(excelOutputPath, xlsxBuffer)]);
-    console.log('Successfully saved files to disk.');
+    console.log('Successfully created base64 data URLs for download.');
 
     return {
       success: true,
-      message: 'Reports generated and saved successfully!',
+      message: 'Reports generated successfully!',
       downloadLinks: {
-        wordUrl: `${outputPath}/${data.reportName}.docx`,
-        excelUrl: `${outputPath}/${data.serviceSheetName}.xlsx`,
+        wordUrl,
+        excelUrl,
       },
     };
   } catch (error) {

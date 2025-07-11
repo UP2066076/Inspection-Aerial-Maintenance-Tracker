@@ -6,9 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { InspectionFormData } from '@/lib/types';
 import { inspectionFormSchema, MAX_BATTERIES, MAX_IMAGES } from '@/lib/types';
 import { generateReport } from '@/lib/actions';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { app } from '@/lib/firebase';
 
 import { useToast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { CalendarIcon, Loader2, Download, CheckCircle, PlusCircle, Trash2 } from 'lucide-react';
@@ -21,7 +22,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ImageUploader } from './image-uploader';
-import { CameraCapture } from './camera-capture';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -133,7 +133,6 @@ export function DroneInspectionForm() {
     serviceSheetName: string;
   } | null>(null);
   const { toast } = useToast();
-  const isMobile = useIsMobile();
 
   const form = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionFormSchema),
@@ -164,11 +163,6 @@ export function DroneInspectionForm() {
   const investigateBatteryHealth = useWatch({
     control: form.control,
     name: 'investigateBatteryHealth',
-  });
-
-  const images = useWatch({
-    control: form.control,
-    name: 'images',
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -234,22 +228,6 @@ export function DroneInspectionForm() {
     'calibrationNotes',
     'additionalRepairsNotes',
   ];
-
-  const handleImageCapture = (imageDataUrl: string) => {
-    const currentImages = form.getValues('images') || [];
-    if (currentImages.length < MAX_IMAGES) {
-      form.setValue('images', [...currentImages, imageDataUrl], {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Image limit reached',
-        description: `You cannot add more than ${MAX_IMAGES} images.`,
-      });
-    }
-  };
 
   if (downloadInfo) {
     return (
@@ -495,35 +473,22 @@ export function DroneInspectionForm() {
           <CardHeader>
             <CardTitle>Photo Evidence</CardTitle>
             <CardDescription>
-              {isMobile
-                ? `Take photos with your device camera or upload files. Up to ${MAX_IMAGES} images (PNG, JPG) are supported.`
-                : `Upload files to add photo evidence. Up to ${MAX_IMAGES} images (PNG, JPG) are supported.`}
+              Upload files to add photo evidence. Up to {MAX_IMAGES} images (PNG, JPG) are supported.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={cn('grid grid-cols-1 items-start gap-8', isMobile && 'md:grid-cols-2')}>
-              {isMobile && (
-                <div className="flex h-full flex-col space-y-2">
-                  <FormLabel>Camera Capture</FormLabel>
-                  <CameraCapture onCapture={handleImageCapture} disabled={(images?.length ?? 0) >= MAX_IMAGES} />
-                </div>
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUploader value={field.value || []} onChange={field.onChange} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-              <div className={cn('flex h-full flex-col space-y-2', isMobile && 'md:col-start-2 md:row-start-1')}>
-                <FormLabel>Image Upload & Preview</FormLabel>
-                <FormField
-                  control={form.control}
-                  name="images"
-                  render={({ field }) => (
-                    <FormItem className="flex-grow">
-                      <FormControl>
-                        <ImageUploader value={field.value || []} onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+            />
           </CardContent>
         </Card>
 

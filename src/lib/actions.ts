@@ -41,21 +41,32 @@ export async function generateReport(data: InspectionFormData): Promise<{
   console.log('Received data for report generation.');
 
   try {
-    const templateDir = path.resolve(process.cwd(), 'public/templates');
+    const timestamp = Date.now();
+    const outputDir = path.join(process.cwd(), 'public', 'output', String(timestamp));
+    await fs.mkdir(outputDir, { recursive: true });
+    console.log(`Created output directory: ${outputDir}`);
 
-    // --- Generate Document Buffers in Memory ---
-    const [docxBuffer, xlsxBuffer] = await Promise.all([generateDocx(data, templateDir), generateXlsx(data, templateDir)]);
+    const wordFilename = `${data.reportName}.docx`;
+    const excelFilename = `${data.serviceSheetName}.xlsx`;
+
+    const wordOutputPath = path.join(outputDir, wordFilename);
+    const excelOutputPath = path.join(outputDir, excelFilename);
+
+    // --- Generate and Save Files ---
+    const [docxBuffer, xlsxBuffer] = await Promise.all([generateDocx(data), generateXlsx(data)]);
     console.log('Successfully generated DOCX and XLSX buffers.');
 
-    // --- Convert buffers to base64 data URLs ---
-    const wordUrl = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString('base64')}`;
-    const excelUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${xlsxBuffer.toString('base64')}`;
+    await Promise.all([fs.writeFile(wordOutputPath, docxBuffer), fs.writeFile(excelOutputPath, xlsxBuffer)]);
+    console.log('Successfully saved files to disk.');
 
-    console.log('Successfully created base64 data URLs for download.');
+    // --- Create Public URLs for Download ---
+    const wordUrl = `/output/${timestamp}/${encodeURIComponent(wordFilename)}`;
+    const excelUrl = `/output/${timestamp}/${encodeURIComponent(excelFilename)}`;
+    console.log(`Generated download URLs: ${wordUrl}, ${excelUrl}`);
 
     return {
       success: true,
-      message: 'Reports generated successfully!',
+      message: 'Reports generated and saved successfully!',
       downloadLinks: {
         wordUrl,
         excelUrl,
@@ -71,9 +82,9 @@ export async function generateReport(data: InspectionFormData): Promise<{
   }
 }
 
-async function generateDocx(data: InspectionFormData, templateDir: string): Promise<Buffer> {
+async function generateDocx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const wordTemplatePath = path.join(templateDir, 'template.docx');
+    const wordTemplatePath = path.join(process.cwd(), 'public', 'templates', 'template.docx');
     const wordTemplateContent = await fs.readFile(wordTemplatePath);
 
     const imageModule = new ImageModule({
@@ -179,9 +190,9 @@ async function generateDocx(data: InspectionFormData, templateDir: string): Prom
   }
 }
 
-async function generateXlsx(data: InspectionFormData, templateDir: string): Promise<Buffer> {
+async function generateXlsx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const excelTemplatePath = path.join(templateDir, 'template.xlsx');
+    const excelTemplatePath = path.join(process.cwd(), 'public', 'templates', 'template.xlsx');
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(excelTemplatePath);
 

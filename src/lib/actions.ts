@@ -41,10 +41,15 @@ export async function generateReport(data: InspectionFormData): Promise<{
   console.log('Received data for report generation.');
 
   try {
-    const timestamp = Date.now();
-    const outputDir = path.join(process.cwd(), 'public', 'output', String(timestamp));
+    const outputDir = path.join(process.cwd(), 'public', 'output');
     await fs.mkdir(outputDir, { recursive: true });
-    console.log(`Created output directory: ${outputDir}`);
+
+    // Clean the output directory before generating new files
+    const files = await fs.readdir(outputDir);
+    for (const file of files) {
+      await fs.unlink(path.join(outputDir, file));
+    }
+    console.log('Cleaned output directory.');
 
     const wordFilename = `${data.reportName}.docx`;
     const excelFilename = `${data.serviceSheetName}.xlsx`;
@@ -60,8 +65,8 @@ export async function generateReport(data: InspectionFormData): Promise<{
     console.log('Successfully saved files to disk.');
 
     // --- Create Public URLs for Download ---
-    const wordUrl = `/output/${timestamp}/${encodeURIComponent(wordFilename)}`;
-    const excelUrl = `/output/${timestamp}/${encodeURIComponent(excelFilename)}`;
+    const wordUrl = `/output/${encodeURIComponent(wordFilename)}`;
+    const excelUrl = `/output/${encodeURIComponent(excelFilename)}`;
     console.log(`Generated download URLs: ${wordUrl}, ${excelUrl}`);
 
     return {

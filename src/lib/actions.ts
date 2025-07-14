@@ -34,9 +34,9 @@ export async function login(password: string): Promise<{ error: string } | void>
 }
 
 async function getTemplatePath(templateName: string): Promise<string> {
-  // Use path.resolve to get a reliable path to the templates directory
-  // This works in both local dev and serverless environments (Vercel, etc.)
-  const templatePath = path.resolve(process.cwd(), 'src', 'lib', 'templates', templateName);
+  // This provides a robust path to the templates directory that works across different deployment environments.
+  const templatesDir = path.join(process.env.PWD || process.cwd(), 'src', 'lib', 'templates');
+  const templatePath = path.join(templatesDir, templateName);
 
   try {
     await fs.access(templatePath);

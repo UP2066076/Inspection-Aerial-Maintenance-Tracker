@@ -34,8 +34,8 @@ export async function login(password: string): Promise<{ error: string } | void>
 }
 
 async function getTemplatePath(templateName: string): Promise<string> {
-  // This provides a robust path to the templates directory that works across different deployment environments.
-  const templatesDir = path.join(process.env.PWD || process.cwd(), 'src', 'lib', 'templates');
+  // This provides a robust path to the public templates directory that works across different deployment environments.
+  const templatesDir = path.join(process.cwd(), 'public', 'templates');
   const templatePath = path.join(templatesDir, templateName);
 
   try {
@@ -43,7 +43,7 @@ async function getTemplatePath(templateName: string): Promise<string> {
     return templatePath;
   } catch (error) {
     console.error(`Template not found at ${templatePath}`);
-    throw new Error(`Template file '${templateName}' not found in 'src/lib/templates'.`);
+    throw new Error(`Template file '${templateName}' not found in 'public/templates'.`);
   }
 }
 

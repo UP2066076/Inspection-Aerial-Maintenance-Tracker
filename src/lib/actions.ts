@@ -33,18 +33,9 @@ export async function login(password: string): Promise<{ error: string } | void>
   return { error: 'Invalid password' };
 }
 
-async function getTemplatePath(templateName: string): Promise<string> {
+function getTemplatePath(templateName: string): string {
   // This provides a robust path to the public templates directory that works across different deployment environments.
-  const templatesDir = path.join(process.cwd(), 'public', 'templates');
-  const templatePath = path.join(templatesDir, templateName);
-
-  try {
-    await fs.access(templatePath);
-    return templatePath;
-  } catch (error) {
-    console.error(`Template not found at ${templatePath}`);
-    throw new Error(`Template file '${templateName}' not found in 'public/templates'.`);
-  }
+  return path.join(process.cwd(), 'public', 'templates', templateName);
 }
 
 export async function generateReport(data: InspectionFormData): Promise<{
@@ -84,7 +75,7 @@ export async function generateReport(data: InspectionFormData): Promise<{
 
 async function generateDocx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const wordTemplatePath = await getTemplatePath('template.docx');
+    const wordTemplatePath = getTemplatePath('template.docx');
     const wordTemplateContent = await fs.readFile(wordTemplatePath);
 
     const imageModule = new ImageModule({
@@ -189,7 +180,7 @@ async function generateDocx(data: InspectionFormData): Promise<Buffer> {
 
 async function generateXlsx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const excelTemplatePath = await getTemplatePath('template.xlsx');
+    const excelTemplatePath = getTemplatePath('template.xlsx');
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(excelTemplatePath);
 

@@ -11,6 +11,7 @@ import { MAX_IMAGES, MAX_BATTERIES } from './types';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { encrypt } from './auth';
+import axios from 'axios';
 
 // Using require for docxtemplater-image-module-free as it's a CJS module
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -33,11 +34,6 @@ export async function login(password: string): Promise<{ error: string } | void>
   return { error: 'Invalid password' };
 }
 
-function getTemplatePath(templateName: string): string {
-  // This provides a robust path to the public templates directory that works across different deployment environments.
-  return path.join(process.cwd(), 'public', 'templates', templateName);
-}
-
 export async function generateReport(data: InspectionFormData): Promise<{
   success: boolean;
   message: string;
@@ -46,7 +42,7 @@ export async function generateReport(data: InspectionFormData): Promise<{
   console.log('Received data for report generation.');
 
   try {
-    // Generate file buffers in memory
+    // Generate file buffers in memory by fetching from public URL
     const [docxBuffer, xlsxBuffer] = await Promise.all([generateDocx(data), generateXlsx(data)]);
     console.log('Successfully generated DOCX and XLSX buffers in memory.');
 
@@ -73,10 +69,35 @@ export async function generateReport(data: InspectionFormData): Promise<{
   }
 }
 
+async function fetchTemplate(templateName: string): Promise<Buffer> {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_BASE_URL environment variable is not set.');
+  }
+  const templateUrl = `${baseUrl}/templates/${templateName}`;
+  try {
+    console.log(`Fetching template from: ${templateUrl}`);
+    const response = await axios.get(templateUrl, {
+      responseType: 'arraybuffer',
+    });
+    return Buffer.from(response.data);
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      console.error(`Axios error fetching ${templateUrl}:`, error.message);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+      }
+    } else {
+      console.error(`Error fetching ${templateUrl}:`, error.message);
+    }
+    throw new Error(`Could not fetch template ${templateName}. Please ensure the URL is correct and the app is running.`);
+  }
+}
+
 async function generateDocx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const wordTemplatePath = getTemplatePath('template.docx');
-    const wordTemplateContent = await fs.readFile(wordTemplatePath);
+    const wordTemplateContent = await fetchTemplate('template.docx');
 
     const imageModule = new ImageModule({
       getImage: function (tagValue: string) {
@@ -180,9 +201,9 @@ async function generateDocx(data: InspectionFormData): Promise<Buffer> {
 
 async function generateXlsx(data: InspectionFormData): Promise<Buffer> {
   try {
-    const excelTemplatePath = getTemplatePath('template.xlsx');
+    const excelTemplateBuffer = await fetchTemplate('template.xlsx');
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(excelTemplatePath);
+    await workbook.xlsx.load(excelTemplateBuffer);
 
     const worksheet = workbook.getWorksheet('Sheet2');
     if (!worksheet) {
